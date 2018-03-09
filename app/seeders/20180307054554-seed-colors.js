@@ -14,22 +14,22 @@ module.exports = {
     */
     return queryInterface.bulkInsert('Colors', [{
       color: "RED",
-      value: 1,
+      colorValue: 1,
       createdAt: Sequelize.literal('CURRENT_TIMESTAMP(3)'),
       updatedAt: Sequelize.literal('CURRENT_TIMESTAMP(3)')
     },{
       color: "GREEN",
-      value: 2,
+      colorValue: 2,
       createdAt: Sequelize.literal('CURRENT_TIMESTAMP(3)'),
       updatedAt: Sequelize.literal('CURRENT_TIMESTAMP(3)')
     },{
       color: "BLUE",
-      value: 3,
+      colorValue: 3,
       createdAt: Sequelize.literal('CURRENT_TIMESTAMP(3)'),
       updatedAt: Sequelize.literal('CURRENT_TIMESTAMP(3)')
     },{
       color: "YELLOW",
-      value: 4,
+      colorValue: 4,
       createdAt: Sequelize.literal('CURRENT_TIMESTAMP(3)'),
       updatedAt: Sequelize.literal('CURRENT_TIMESTAMP(3)')
     }], {});

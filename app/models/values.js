@@ -25,10 +25,14 @@ module.exports = new Enum({
 module.exports = function(sequelize, DataTypes) {
 	const Values = sequelize.define("Values", {
 		card: {
-			type: DataTypes.STRING
+			type: DataTypes.STRING,
+			allowNull: false,
+			unique: true
 		},
 		value: {
-			type: DataTypes.INTEGER
+			type: DataTypes.INTEGER,
+			allowNull: false,
+			unique: true
 		}
 	});
 

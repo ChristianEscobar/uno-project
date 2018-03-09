@@ -30,8 +30,12 @@ app.use(methodOverride("_method"));
 app.use("/", routes);
 
 // Syncing our sequelize models and then starting our Express app
-//db.Values.hasMany(db.sequelize.models.Cards);
-//db.Colors.hasMany(db.sequelize.models.Cards);
+db.Values.hasMany(db.sequelize.models.Cards, {foreignKey: "valueId"});
+db.Colors.hasMany(db.sequelize.models.Cards, {foreignKey: "colorId"});
+
+// Sounds a bit weird to say but we need to specify that 
+// a deck has many cards
+db.Cards.hasMany(db.sequelize.models.Deck, {foreignKey: "cardId"});
 
 db.sequelize.sync({force: true})
 .then(() => {
