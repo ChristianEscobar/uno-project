@@ -61,3 +61,9 @@ typings/
 .DS_Store
 
 package-lock.json
+
+# Semantic-UI resources
+semantic/
+
+# Semantic-UI build tools/config file (npm i semantic-ui installs this in root directory where Semantic direcotry is located)
+semantic.json

@@ -1,0 +1,19 @@
+html {
+  background-color: white;
+}
+
+nav {
+  background-color: black;
+}
+
+.top {
+  margin-top: 75px;
+}
+
+.rowguide1 {
+  border: 1px solid red;
+}
+
+.pile-align {
+  margin-left: 16%;
+}
