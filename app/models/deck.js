@@ -10,24 +10,7 @@
     4x wild draw four
   */
   module.exports = function(sequelize, DataTypes) {
-    const Deck = sequelize.define("Deck", {
-      card: {
-        type: DataTypes.STRING,
-        allowNull: false
-      },
-      value: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-      },
-      color: {
-        type: DataTypes.STRING,
-        allowNull: true
-      },
-      colorValue: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-      }
-    });
+    const Deck = sequelize.define("Deck", {});
 
     return Deck;
   };
