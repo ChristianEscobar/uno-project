@@ -10,10 +10,22 @@ nav {
   margin-top: 75px;
 }
 
-.rowguide1 {
+.guide1 {
   border: 1px solid red;
 }
 
-.pile-align {
-  margin-left: 16%;
+.guide2 {
+  border: 1px solid blue;
+}
+
+.guide3 {
+  border: 1px solid green;
+}
+
+.guide4 {
+  border: 1px solid yellow;
+}
+
+.center-content {
+
 }
