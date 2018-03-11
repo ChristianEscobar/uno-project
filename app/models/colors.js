@@ -23,7 +23,17 @@ module.exports = function(sequelize, DataTypes) {
 			allowNull: false,
 			unique: true
 		}
-	})
+	});
+
+	// Add instance methods
+	// Short function notation i.e () => {} does not work here!!!! wth!!!
+	Colors.prototype.getColor = function() {
+		return this.color;
+	}
+
+	Colors.prototype.getColorValue = function() {
+		return this.colorValue;
+	}
 
 	return Colors;
 };

@@ -7,207 +7,270 @@ const Values = db.Values;
 const Colors = db.Colors;
 const Cards = db.Cards;
 const Deck = db.Deck;
+const Users = db.Users;
+const Discard = db.Discard;
 const Enum = require("enum");
 const Shuffle = require("shuffle");
+const utilities = require("./utils/utilities");
 
-const utilities = {
-	// Returns a JSON object containing the error summary and error message
-	createErrorMessageJSON: (errorSummary, errorObj) => {
-		return {
-			errorSummary: errorSummary,
-			errorMessage: errorObj.message
-		};
-	},
-	// Returns an array of Create promises
-	createCards: (qty, card, value, color, colorValue, valueId, colorId) => {
-		let result = [];
+// Sets up a new game
+router.get("/game/new-game", (req, res) => {
+	let colorValues = null;
 
-		for(let i=0; i<qty; i++) {
-			let promise = Cards.create({
-				card: card,
-				value: value,
-				color: color,
-				colorValue: colorValue,
-				valueId: valueId,
-				cardId: colorId
-			});
+	let populateCardsTable = false;
+
+	// Check if the Cards table needs to be populated
+	Cards.findAll()
+	.then((results) => {
+		if(results.length === 0) {
+			populateCardsTable = true;
+		} else {
+			populateCardsTable = false;
 		}
 
-		return result;
-	}
-}
-
-// Initializes game
-router.get("/game/initialize", (req, res) => {
-	const colors = null;
-
-	// Start by deleting rows from the Deck and Cards table
-	Deck.destroy({
-		where: {},  // We want all the rows gone!
-		runcate: true
+		return Promise.resolve(true);
 	})
 	.then((results) => {
-		Cards.destroy({
-				where: {},  // We want all the rows gone!
-				runcate: true
-		})
-		.then((results) => {
-			// Now, populate the Cards table by creating rows based on the Colors and Values tables
-			Colors.findAll()
-			.then((colors) => {
-				
-				if(colors.length === 0) {
-					throw new Error("No rows found in Colors table.");
-				}
-				
-				colors = colors;
-
-				Values.findAll()
-				.then((values) => {
-
-					if(values.length === 0) {
-						throw new Error("No rows found in Values table.");
-					}
-
-					let createPromises = [];
-
-					let wildsCreated = false;
-					let wildsDrawFourCreated = false;
-
-					// For each color create cards as follows
-					// 76x numbers (0-9, all colors)
-	    		// 8x draw two (2x each color)
-	    		// 8x reverse (2x each color)
-	    		// 8x skip (2x each color)
-	    		// 4x wild
-	    		// 4x wild draw four
-
-	    		// We are inserting a whole bunch of rows here, so we will store
-					// each create promise and then return a Promise.all
-					for(let i=0; i < colors.length; i++) {
-						for(let j=0; j < values.length; j++) {
-							let promise = null;
-						
-							if(Number(values[j].value) >= 1 && Number(values[j].value <= 12)) {
-								
-								// Create 2 cards of 0 - 9 for each color
-								createPromises.push.apply(createPromises, utilities.createCards(2, values[j].card, values[j].value, colors[i].color, colors[i].colorValue, values[j].id, colors[i].id));
-
-							} else if(Number(values[j].value) === 13 && wildsCreated === false) {
-								
-								// Create 4 cards each of WILD with no color designation
-								createPromises.push.apply(createPromises, utilities.createCards(4, values[j].card, values[j].value, null, null, values[j].id, null));
-
-								wildsCreated = true;
-
-							} else if(Number(values[j].value) === 14 && wildsDrawFourCreated === false) {
-								
-								// Create 4 cards each of WILD with no color designation
-								createPromises.push.apply(createPromises, utilities.createCards(4, values[j].card, values[j].value, null, null, values[j].id, null));
-
-								wildsDrawFourCreated = true;
-							} 
-							else if(Number(values[j].value) === 0){
-								
-								// Create 1 zero card per color
-								createPromises.push.apply(createPromises, utilities.createCards(1, values[j].card, values[j].value, colors[i].color, colors[i].colorValue, values[j].id, colors[i].id));
-							
-							} else {
-								// Skip anything else
-								continue;
-							}
-						}
-					}
-
-					return Promise.all(createPromises);
-				})
-				.then((results) => {
-					console.log("Cards table populated.");
-
-					res.status(200).json("OK");
-				})
-				.catch((error) => {
-					res.status(500).json(utilities.createErrorMessageJSON("Error encountered while populating Cards table", error));
-				});
-			})
-			.catch((error) => {
-				res.status(500).json(utilities.createErrorMessageJSON("Error encountered while extracting from Colors table", error));
-			});
-		})
-		.catch((error) => {
-			res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to delete rows from Cards table", error));
-		});
-	})
-	.catch((error) => {
-		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to delete rows from Deck table", error));
-	});
-});
-
-// Creates a new shuffled deck
-router.get("/game/create-deck", (req, res) => {
-	// Get all the cards from the database
-	Cards.findAll()
-	.then((cards) => {
-		
-		if(cards.length === 0) {
-			throw new Error("No cards found in Cards table.  Have you run initialization?");
-		}
-
-		// Shuffle the cards
-		const deck = Shuffle.shuffle({deck: cards});
-
-		// Since this is a new deckm, let's delete all the rows currently in the decks table
+		// Start by deleting rows from the Deck
 		Deck.destroy({
 			where: {},  // We want all the rows gone!
 			truncate: true
-		})
-		.then((result) => {
-			// Store the shuffled deck in the database
-			let createPromises = [];
+		});
+	})
+	.then((results) => {
+		// Pull data from Colors table
+		return Colors.findAll();	
+	})
+	.then((colors) => {
+		if(colors === null || colors.length === 0) {
+			throw new Error("No rows found in Colors table.  Have you executed seeder script?");
+		}
+				
+		colorValues = colors;
 
-			for(let i=0; i<deck.cards.length; i++) {
-				let promise = Deck.create({
-					card: deck.cards[i].card,
-					value: deck.cards[i].value,
-					color: deck.cards[i].color,
-					colorValue: deck.cards[i].colorValue
-				})
+		// Pull data from the Values table
+		return Values.findAll()
+	})
+	.then((values) => {
+		if(values === null || values.length === 0) {
+			throw new Error("No rows found in Values table.  Have you executed seeder script?");
+		}
 
-				createPromises.push(promise);
+		// Now, populate the Cards table if necessary
+		// For each color create cards as follows
+		// 76x numbers (0-9, all colors)
+		// 8x draw two (2x each color)
+		// 8x reverse (2x each color)
+		// 8x skip (2x each color)
+		// 4x wild
+		// 4x wild draw four
+		if(populateCardsTable === true) {
+			const createPromises = [];
+
+			let wildsCreated = false;
+			let wildsDrawFourCreated = false;
+
+			// We are inserting a whole bunch of rows here, so we will store
+			// each create promise and then return a Promise.all
+		
+			for(let i=0; i < colorValues.length; i++) {
+				for(let j=0; j < values.length; j++) {
+					let promise = null;
+				
+					if(Number(values[j].value) >= 1 && Number(values[j].value <= 12)) {
+						
+						// Create 2 cards of 0 - 9 for each color
+
+						// Create image name based on value
+						let smallImageName = "";
+						let largeImageName = "";
+
+						switch(values[j].value) {
+							case 10: {
+								smallImageName = colorValues[i].color + "_picker.png";
+								largeImageName = colorValues[i].color + "_picker_large.png";
+								break;
+							}
+							case 11: {
+								smallImageName = colorValues[i].color + "_reverse.png";
+								largeImageName = colorValues[i].color + "_reverse_large.png";
+								break;
+							}
+							case 12: {
+								smallImageName = colorValues[i].color + "_skip.png";
+								largeImageName = colorValues[i].color + "_skip_large.png";
+								break;
+							}
+							default: {
+								smallImageName = colorValues[i].color + "_" + values[j].value + ".png";
+								largeImageName = colorValues[i].color + "_" + values[j].value + "_large.png";
+							}
+						}
+
+						createPromises.push.apply(createPromises, utilities.createCards(2, smallImageName, largeImageName, values[j].id, colorValues[i].id));
+
+					} else if(Number(values[j].value) === 13 && wildsCreated === false) {
+						
+						// Create 4 cards each of WILD with no color designation
+						const smallImageName = "wild_color_changer.png";
+						const largeImageName = "wild_color_changer_large.png";
+
+						createPromises.push.apply(createPromises, utilities.createCards(4, smallImageName, largeImageName, values[j].id, null));
+
+						wildsCreated = true;
+
+					} else if(Number(values[j].value) === 14 && wildsDrawFourCreated === false) {
+						
+						// Create 4 cards each of WILD with no color designation
+						const smallImageName = "wild_pick_four.png";
+						const largeImageName = "wild_pick_four_large.png";
+
+						createPromises.push.apply(createPromises, utilities.createCards(4, smallImageName, largeImageName, values[j].id, null));
+
+						wildsDrawFourCreated = true;
+					} 
+					else if(Number(values[j].value) === 0){
+						
+						// Create 1 zero card per color
+						const smallImageName = colorValues[i].color + "_" + values[j].value + ".png";
+						const largeImageName = colorValues[i].color + "_" + values[j].value + "_large.png";
+
+						createPromises.push.apply(createPromises, utilities.createCards(1, smallImageName, largeImageName, values[j].id, colorValues[i].id));
+					
+					} else {
+						// Skip anything else
+						continue;
+					}
+				}
 			}
-
 			return Promise.all(createPromises);
-		})
-		.then((results) => {
-			res.status(200).json(deck);
-		})
-	}).catch((error) => {
-		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while creating deck.",error));
-	});
+		} else {
+			return Promise.resolve(true);
+		}
+	})
+	.then((results) => {
+		// Now, create a new shuffled deck
+		return utilities.newShuffledDeck();
+	})
+	.then((results) => {
+		// Draw one card from the top of the deck
+		return utilities.drawCards(1);
+	})
+	.then((results) => {
+		// Place the card on the discard pile
+		return utilities.addToDiscardPile(results[0].cardId);
+	})
+	.then((results) => {
+		// Delete the top most card from the deck since it is now on the discard pile
+		const cardIds = [];
+		cardIds.push(results.cardId);
+
+		return utilities.deleteFromDeck(cardIds);
+	})
+	.then((results) => {
+		res.status(200).json("OK");
+	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to setup a new game.", error)));
 });
 
-// Returns the top card from the deck
-router.get("/game/get-card", (req, res) => {
+router.get("/game/player-info/:playerId", (req, res) => {
+	Users.findAll({
+		where: {id: req.params.playerId}
+	})
+	.then((results) => {
+		res.status(200).json(results);
+	})
+	.catch((error) => utilities.createErrorMessageJSON("Error encountered while creating new player.", error));
+});
+
+router.post("/game/new-player/:name", (req, res) => {
+	let responseObj = 
+	{
+		userId: -1
+	};
+
+	Users.findAll()
+	.then((results) => {
+		// No users are playing to we can continue
+		if(results.length < 2) {
+			return Users.create({
+				name: req.params.name,
+				totalWins: 0,
+				totalLosses: 0,
+				isPlaying: true
+			});
+		} else {
+			res.status(200).json(responseObj);
+		}
+	})
+	.then((results) => {
+		res.status(200).json(results);
+	})
+	.catch((error) => utilities.createErrorMessageJSON("Error encountered while creating new player.", error));
+});
+
+
+
+// Creates a new shuffled deck
+router.get("/game/create-deck", (req, res) => {
+	utilities.newShuffledDeck()
+	.then((results) => {
+		res.status(200).json(results);
+	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while creating deck.",error)));
+});
+
+// Returns the top card from the deck NOT USED for now.
+/*
+router.get("/game/draw-card", (req, res) => {
+
+	// Extract the top most card
 	Deck.findAll({
 		limit: 1
 	})
 	.then((results) => {
-		res.status(200).json(results);
+
+		if(results.length === 0) {
+			throw new Error("No rows found in Deck table.");
+		}
+		// Now extract the card from the Cards table
+		Cards.findAll({
+			where: {
+				id: results[0].cardId
+			}
+		})
+		.then((card) => {
+			res.status(200).json(card);
+		})
 	})
 	.catch((error) => {
 		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while getting the top card from the deck", error));
 	})
 });
+*/
+
+// Discards a card from the specified players hand and places on the discard pile
+router.post("/game/discard/:playerId/:cardId", (req, res) => {
+	utilities.addToDiscardPile(req.params.cardId)
+	.then((results) => {
+		res.status(200).json(results);
+	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while discarding card", error)));
+});
 
 // Draws cards for the provided player
 router.get("/game/draw-cards/:playerId/:total", (req, res) => {
-	let drawnCards = {};
-
+	
 	// Start by drawing cards from the deck
 	Deck.findAll({
 		limit: Number(req.params.total) // <- Watch out for this!, the request params are strings!!!
 	})
 	.then((results) => {
+
+		if(results.length === 0) {
+			throw new Error("No rows found in Deck table.");
+		}
+
 		// Store the drawn cards
 		drawnCards = results;
 
@@ -218,10 +281,17 @@ router.get("/game/draw-cards/:playerId/:total", (req, res) => {
 	.catch((error) => {
 		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while drawing cards from deck", error));
 	});
+	
 });
 
 // Returns the current deck
 router.get("/game/get-deck", (req, res) => {
+	if(gameState.deck.length === 0) {
+		res.status(500).json(utilities.createErrorMessageJSON("No cards found in deck, have you created a deck?", null));
+	}
+	
+	res.status(200).json(gameState.deck);
+	/*
 	Deck.findAll()
 	.then((results) => {
 		res.status(200).json(results);
@@ -229,6 +299,12 @@ router.get("/game/get-deck", (req, res) => {
 	.catch((error) => {
 		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while extracting deck", error));
 	});
+	*/
+});
+
+// Returns true if it is the turn of the specified player.  False otherwise.
+router.get("/game/is-playerturn/:playerId", (req, res) => {
+
 });
 
 module.exports = router;

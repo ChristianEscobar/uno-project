@@ -36,5 +36,15 @@ module.exports = function(sequelize, DataTypes) {
 		}
 	});
 
+	// Add instance methods
+	// Short function notation i.e () => {} does not work here!!!! wth!!!
+	Values.prototype.getCard = function() {
+		return this.card;
+	}
+
+	Values.prototype.getValue = function() {
+		return this.Value;
+	}
+
 	return Values;
 };
