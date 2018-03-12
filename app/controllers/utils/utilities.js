@@ -5,6 +5,7 @@ const Cards = db.Cards;
 const Deck = db.Deck;
 const Users = db.Users;
 const Discard = db.Discard;
+const Hands = db.Hands;
 const Enum = require("enum");
 const Shuffle = require("shuffle");
 const Sequelize = require("sequelize");
@@ -94,7 +95,22 @@ const utilities = {
 			cardId: cardId
 		});
 	},
+	// Removes a card from user's hand and adds it to discard pile
+	removeFromHandAndAddToDiscard: (userId, cardId) => {
+		return Hands.destroy({
+			where: {
+				userId: userId,
+				cardId: cardId
+			}
+		})
+		.then((results) => {
+			return Discard.create({
+				cardId: cardId
+			});
+		})
+	},
 	// Draws the specified number of cards from the Deck table
+	// isForGameSetup is used to ensure only a numbered card is the first on the discard pile
 	drawCards: (numberOfCards) => {
 		return Deck.findAll({
 			limit: numberOfCards
@@ -108,6 +124,76 @@ const utilities = {
 					[Op.in]: arrayOfCardIds
 				}
 			}
+		});
+	},
+	// Adds the specified cards to the specified user's hand and deletes them from the Deck
+	addCardsToPlayerHand: (userId, cards) => {
+		
+		return db.sequelize.transaction((t) => {
+			const createPromises = [];
+
+			for(let i=0; i<cards.length; i++) {
+				let promise = Hands.create({
+					cardId: cards[i].cardId,
+					userId: userId
+				}, {transaction: t})
+				.then((hand) => {
+					Deck.destroy({
+						where: {
+							cardId: cards[i].cardId
+						}
+					});
+				});
+
+				createPromises.push(promise);
+			}
+
+			return Promise.all(createPromises);
+		});
+
+	},
+	// Used to deal cards for new game, each player gets 7 cards
+	dealCards: (userId, drawCardsFn, addCardsToPlayerHandFn, deleteFromDeckFn) => {
+		let allCards = null;
+
+		// Draw 7 cards
+		return drawCardsFn(7)
+		.then((cards) => {
+			allCards = cards;
+
+			return addCardsToPlayerHandFn(userId, cards);
+		});
+	},
+	topCardOnDiscard: () => {
+		return Discard.findAll({
+			order: [["id", "DESC"]],
+			limit: 1
+		});
+	},
+	isWildCard: (cardId) => {
+		return Values.findAll({
+			include: [{
+				model: Cards,
+				where: {
+					id: cardId
+				}
+			}]
+		})
+		.then((result) => {
+			if(result[0].card === "WILD" || result[0].card === "WILD_DRAW_FOUR") {
+				return Promise.resolve(true);
+			}
+
+			return Promise.resolve(false);
+		});
+	},
+	setPlayerTurn: (playerId) => {
+		Users.update({
+  		isTurn: true,
+		}, {
+  		where: {
+    		id: playerId
+  		}
 		});
 	}
 }

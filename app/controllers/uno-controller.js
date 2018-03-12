@@ -9,20 +9,34 @@ const Cards = db.Cards;
 const Deck = db.Deck;
 const Users = db.Users;
 const Discard = db.Discard;
+const Hands = db.Hands;
 const Enum = require("enum");
 const Shuffle = require("shuffle");
 const utilities = require("./utils/utilities");
+const Sequelize = require("sequelize");
+const Op = Sequelize.Op;
 
 // Sets up a new game
-router.get("/game/new-game", (req, res) => {
+router.post("/game/new-game", (req, res) => {
 	let colorValues = null;
 
 	let populateCardsTable = false;
 
-	// Check if the Cards table needs to be populated
-	Cards.findAll()
+	// Start by checking if enough players have joined the game
+	Users.findAll()
 	.then((results) => {
-		if(results.length === 0) {
+		if(results === null || results.length < 2) {
+			throw new Error("Not enough players have joined");
+		}
+
+		return Promise.resolve(true);
+	})
+	.then(() => {
+		// Check if the Cards table needs to be populated
+		return Cards.findAll()
+	})
+	.then((results) => {
+		if(results === null || results.length === 0) {
 			populateCardsTable = true;
 		} else {
 			populateCardsTable = false;
@@ -153,6 +167,14 @@ router.get("/game/new-game", (req, res) => {
 		return utilities.newShuffledDeck();
 	})
 	.then((results) => {
+		// Deal 7 cards to player 1, this should be more dynamic instead of hard coding
+		return utilities.dealCards(1, utilities.drawCards, utilities.addCardsToPlayerHand, utilities.deleteFromDeck);
+	})
+	.then((results) => {
+		// Deal 7 cards to player 2, this should be more dynamic instead of hard coding
+		return utilities.dealCards(2, utilities.drawCards, utilities.addCardsToPlayerHand, utilities.deleteFromDeck);
+	})
+	.then((results) => {
 		// Draw one card from the top of the deck
 		return utilities.drawCards(1);
 	})
@@ -166,6 +188,10 @@ router.get("/game/new-game", (req, res) => {
 		cardIds.push(results.cardId);
 
 		return utilities.deleteFromDeck(cardIds);
+	})
+	.then((results) => {
+		// Set player 1 as next player
+		return utilities.setPlayerTurn(1);
 	})
 	.then((results) => {
 		res.status(200).json("OK");
@@ -210,9 +236,8 @@ router.post("/game/new-player/:name", (req, res) => {
 });
 
 
-
 // Creates a new shuffled deck
-router.get("/game/create-deck", (req, res) => {
+router.post("/game/create-deck", (req, res) => {
 	utilities.newShuffledDeck()
 	.then((results) => {
 		res.status(200).json(results);
@@ -251,55 +276,84 @@ router.get("/game/draw-card", (req, res) => {
 
 // Discards a card from the specified players hand and places on the discard pile
 router.post("/game/discard/:playerId/:cardId", (req, res) => {
-	utilities.addToDiscardPile(req.params.cardId)
+	utilities.removeFromHandAndAddToDiscard(req.params.playerId, req.params.cardId)
 	.then((results) => {
 		res.status(200).json(results);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while discarding card", error)));
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while discarding card from player", error)));
 });
 
 // Draws cards for the provided player
-router.get("/game/draw-cards/:playerId/:total", (req, res) => {
+router.post("/game/draw/:playerId", (req, res) => {
+	// First check the card currently on the discard pile
+	utilities.topCardOnDiscard()
+	.then((results) => {
+		res.status(200).json(results);
+	})
 	
-	// Start by drawing cards from the deck
-	Deck.findAll({
-		limit: Number(req.params.total) // <- Watch out for this!, the request params are strings!!!
+});
+
+//TEST route
+router.get("/game/test", (req, res) => {
+	
+	/*
+	Values.findAll({
+		where: {
+			value: {
+				[Op.in]: [10,11,12,13,14]
+			}
+		},
+		include: [{
+			model: Cards
+		}]
 	})
 	.then((results) => {
-
-		if(results.length === 0) {
-			throw new Error("No rows found in Deck table.");
-		}
-
-		// Store the drawn cards
-		drawnCards = results;
-
-		// Now, we have to store these cards into the users Hand table
-
 		res.status(200).json(results);
 	})
 	.catch((error) => {
-		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while drawing cards from deck", error));
-	});
-	
+		console.log(error);
+		res.status(500).json(error);
+	})*/
+
+	//29 and 30 are WILD and WILD_DRAW_FOUR
+	utilities.isWildCard(82)
+	.then((result) => {
+		res.status(200).json(result);
+	})
+
+});
+
+router.get("/game/get-hand/:playerId", (req, res) => {
+	Hands.findAll({
+		where: {
+			userId: req.params.playerId
+		}
+	})
+	.then((hand) => {
+		if(hand === null || hand.length === 0) {
+			throw new Error("No cards found for specified player.  Make sure cards have been dealt.");
+		}
+
+		res.status(200).json(hand);
+	})
+	.catch((error) => {
+		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while retrieving players hand", error));
+	})
 });
 
 // Returns the current deck
 router.get("/game/get-deck", (req, res) => {
-	if(gameState.deck.length === 0) {
-		res.status(500).json(utilities.createErrorMessageJSON("No cards found in deck, have you created a deck?", null));
-	}
-	
-	res.status(200).json(gameState.deck);
-	/*
 	Deck.findAll()
-	.then((results) => {
-		res.status(200).json(results);
+	.then((deck) => {
+		if(deck === null || deck.length === 0) {
+			throw new Error("No cards found in deck.  Make sure a deck has been setup.");
+		}
+
+		res.status(200).json(deck);
 	})
 	.catch((error) => {
-		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while extracting deck", error));
-	});
-	*/
+		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while retrieving deck", error));
+	})
 });
 
 // Returns true if it is the turn of the specified player.  False otherwise.
