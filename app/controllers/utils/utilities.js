@@ -163,6 +163,38 @@ const utilities = {
 
 			return addCardsToPlayerHandFn(userId, cards);
 		});
+	},
+	topCardOnDiscard: () => {
+		return Discard.findAll({
+			order: [["id", "DESC"]],
+			limit: 1
+		});
+	},
+	isWildCard: (cardId) => {
+		return Values.findAll({
+			include: [{
+				model: Cards,
+				where: {
+					id: cardId
+				}
+			}]
+		})
+		.then((result) => {
+			if(result[0].card === "WILD" || result[0].card === "WILD_DRAW_FOUR") {
+				return Promise.resolve(true);
+			}
+
+			return Promise.resolve(false);
+		});
+	},
+	setPlayerTurn: (playerId) => {
+		Users.update({
+  		isTurn: true,
+		}, {
+  		where: {
+    		id: playerId
+  		}
+		});
 	}
 }
 

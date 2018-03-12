@@ -17,7 +17,7 @@ const Sequelize = require("sequelize");
 const Op = Sequelize.Op;
 
 // Sets up a new game
-router.get("/game/new-game", (req, res) => {
+router.post("/game/new-game", (req, res) => {
 	let colorValues = null;
 
 	let populateCardsTable = false;
@@ -190,6 +190,10 @@ router.get("/game/new-game", (req, res) => {
 		return utilities.deleteFromDeck(cardIds);
 	})
 	.then((results) => {
+		// Set player 1 as next player
+		return utilities.setPlayerTurn(1);
+	})
+	.then((results) => {
 		res.status(200).json("OK");
 	})
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to setup a new game.", error)));
@@ -233,7 +237,7 @@ router.post("/game/new-player/:name", (req, res) => {
 
 
 // Creates a new shuffled deck
-router.get("/game/create-deck", (req, res) => {
+router.post("/game/create-deck", (req, res) => {
 	utilities.newShuffledDeck()
 	.then((results) => {
 		res.status(200).json(results);
@@ -280,34 +284,19 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 });
 
 // Draws cards for the provided player
-router.get("/game/draw-cards/:playerId/:total", (req, res) => {
-	
-	// Start by drawing cards from the deck
-	Deck.findAll({
-		limit: Number(req.params.total) // <- Watch out for this!, the request params are strings!!!
-	})
+router.post("/game/draw/:playerId", (req, res) => {
+	// First check the card currently on the discard pile
+	utilities.topCardOnDiscard()
 	.then((results) => {
-
-		if(results.length === 0) {
-			throw new Error("No rows found in Deck table.");
-		}
-
-		// Store the drawn cards
-		drawnCards = results;
-
-		// Now, we have to store these cards into the users Hand table
-
 		res.status(200).json(results);
 	})
-	.catch((error) => {
-		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while drawing cards from deck", error));
-	});
 	
 });
 
 //TEST route
 router.get("/game/test", (req, res) => {
 	
+	/*
 	Values.findAll({
 		where: {
 			value: {
@@ -324,6 +313,12 @@ router.get("/game/test", (req, res) => {
 	.catch((error) => {
 		console.log(error);
 		res.status(500).json(error);
+	})*/
+
+	//29 and 30 are WILD and WILD_DRAW_FOUR
+	utilities.isWildCard(82)
+	.then((result) => {
+		res.status(200).json(result);
 	})
 
 });
