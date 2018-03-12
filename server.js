@@ -37,6 +37,8 @@ db.Colors.hasMany(db.sequelize.models.Cards, {foreignKey: "colorId"});
 // a deck has many cards
 db.Cards.hasMany(db.sequelize.models.Deck, {foreignKey: "cardId"});
 db.Cards.hasMany(db.sequelize.models.Discard, {foreignKey: "cardId"});
+db.Cards.hasMany(db.sequelize.models.Hands, {foreignKey: "cardId"});
+db.Users.hasMany(db.sequelize.models.Hands, {foreignKey: "userId"});
 //db.Cards.belongsTo(db.sequelize.models.Deck, {foreignKey: "cardId"});
 //db.Deck.hasMany(db.sequelize.models.Cards, {foreignKey: "deckId"});
 
