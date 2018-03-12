@@ -9,20 +9,6 @@ module.exports = function(sequelize, DataTypes) {
 			type: DataTypes.STRING,
 			allowNull: false
 		}
-		/*
-		value: {
-			type: DataTypes.INTEGER,
-			allowNull: false
-		},
-		color: {
-			type: DataTypes.STRING,
-			allowNull: true
-		},
-		colorValue: {
-			type: DataTypes.INTEGER,
-			allowNull: true
-		}
-		*/
 	});
 
 	// Add instance methods
