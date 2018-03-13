@@ -24,36 +24,42 @@ router.post("/game/new-game", (req, res) => {
 
 	let populateCardsTable = false;
 
+	let resultObj = {};
+
+	let usersTable = null;
+
 	// Start by checking if enough players have joined the game
 	Users.findAll()
-	.then((results) => {
-		if(results === null || results.length < 2) {
+	.then((users) => {
+		if(users === null || users.length < 2) {
 			throw new Error("Not enough players have joined");
 		}
 
-		return Promise.resolve(true);
+		usersTable = users;
+		resultObj.users = users;
+
+		// Check if the Cards table has to be populated
+		return Cards.findAll();
 	})
-	.then(() => {
-		// Check if the Cards table needs to be populated
-		return Cards.findAll()
-	})
-	.then((results) => {
-		if(results === null || results.length === 0) {
+	.then((cardsTable) => {
+		if(cardsTable === null || cardsTable.length === 0) {
 			populateCardsTable = true;
 		} else {
 			populateCardsTable = false;
 		}
 
-		return Promise.resolve(true);
-	})
-	.then((results) => {
-		// Start by deleting rows from the Deck
-		Deck.destroy({
+		resultObj.cardsLength = cardsTable.length;
+		resultObj.populateCards = populateCardsTable;
+
+		// Remove rows from Deck table
+		return Deck.destroy({
 			where: {},  // We want all the rows gone!
 			truncate: true
 		});
 	})
-	.then((results) => {
+	.then((deckDestroy) => {
+		resultObj.deckDestroy = deckDestroy;
+
 		// Pull data from Colors table
 		return Colors.findAll();	
 	})
@@ -88,12 +94,13 @@ router.post("/game/new-game", (req, res) => {
 
 			// We are inserting a whole bunch of rows here, so we will store
 			// each create promise and then return a Promise.all
-		
+			
+			// The NO_COLOR value is reserved for WILD cards only.
 			for(let i=0; i < colorValues.length; i++) {
 				for(let j=0; j < values.length; j++) {
 					let promise = null;
 				
-					if(Number(values[j].value) >= 1 && Number(values[j].value <= 12)) {
+					if((Number(values[j].value) >= 1 && Number(values[j].value <= 12)) && colorValues[i].color != "NO_COLOR") {
 						
 						// Create 2 cards of 0 - 9 for each color
 
@@ -125,27 +132,27 @@ router.post("/game/new-game", (req, res) => {
 
 						createPromises.push.apply(createPromises, utilities.createCards(2, smallImageName, largeImageName, values[j].id, colorValues[i].id));
 
-					} else if(Number(values[j].value) === 13 && wildsCreated === false) {
+					} else if((Number(values[j].value) === 13 && wildsCreated === false) && colorValues[i].color == "NO_COLOR") {
 						
 						// Create 4 cards each of WILD with no color designation
 						const smallImageName = "wild_color_changer.png";
 						const largeImageName = "wild_color_changer_large.png";
 
-						createPromises.push.apply(createPromises, utilities.createCards(4, smallImageName, largeImageName, values[j].id, null));
+						createPromises.push.apply(createPromises, utilities.createCards(4, smallImageName, largeImageName, values[j].id, colorValues[i].id));
 
 						wildsCreated = true;
 
-					} else if(Number(values[j].value) === 14 && wildsDrawFourCreated === false) {
+					} else if((Number(values[j].value) === 14 && wildsDrawFourCreated === false) && colorValues[i].color == "NO_COLOR") {
 						
 						// Create 4 cards each of WILD with no color designation
 						const smallImageName = "wild_pick_four.png";
 						const largeImageName = "wild_pick_four_large.png";
 
-						createPromises.push.apply(createPromises, utilities.createCards(4, smallImageName, largeImageName, values[j].id, null));
+						createPromises.push.apply(createPromises, utilities.createCards(4, smallImageName, largeImageName, values[j].id, colorValues[i].id));
 
 						wildsDrawFourCreated = true;
 					} 
-					else if(Number(values[j].value) === 0){
+					else if(Number(values[j].value) === 0 && colorValues[i].color != "NO_COLOR"){
 						
 						// Create 1 zero card per color
 						const smallImageName = colorValues[i].color + "_" + values[j].value + ".png";
@@ -169,18 +176,27 @@ router.post("/game/new-game", (req, res) => {
 		return utilities.newShuffledDeck();
 	})
 	.then((results) => {
-		// Deal 7 cards to player 1, this should be more dynamic instead of hard coding
-		return utilities.dealCards(1);
+		resultObj.deck = results;
+
+		// Deal 7 cards to each Player
+		const dealPromises = [];
+
+		for(let i=0; i<usersTable.length; i++) {
+			let promise = utilities.dealCards(usersTable[i].id);
+			dealPromises.push(promise);
+		}
+
+		return Promise.all(dealPromises);
 	})
 	.then((results) => {
-		// Deal 7 cards to player 2, this should be more dynamic instead of hard coding
-		return utilities.dealCards(2);
-	})
-	.then((results) => {
+		resultObj.dealtCards = results;
+
 		// Draw one card from the top of the deck
 		return utilities.drawCards(1);
 	})
 	.then((results) => {
+		resultObj.topOfDiscard = results[0].cardId;
+
 		// Place the card on the discard pile
 		return utilities.addToDiscardPile(results[0].cardId);
 	})
@@ -196,7 +212,7 @@ router.post("/game/new-game", (req, res) => {
 		return utilities.setPlayerTurn(1, true);
 	})
 	.then((results) => {
-		res.status(200).json("OK");
+		res.status(200).json(resultObj);
 	})
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to setup a new game.", error)));
 });
@@ -254,6 +270,9 @@ router.post("/game/create-deck", (req, res) => {
 router.post("/game/draw/:playerId", (req, res) => {
 	console.log(req.path);
 
+	let resultObj = {};
+	resultObj.playerId = req.params.playerId;
+
 	// Start by checking if it is the player's turn
 	utilities.isPlayerTurn(req.params.playerId)
 	.then((user) => {
@@ -273,6 +292,9 @@ router.post("/game/draw/:playerId", (req, res) => {
 		return utilities.drawCards(1);
 	})
 	.then((card) => {
+		// Add to response
+		resultObj.card = card;
+
 		// Add card to player's hand
 		return utilities.addCardsToPlayerHand(req.params.playerId, card);
 	})
@@ -281,20 +303,7 @@ router.post("/game/draw/:playerId", (req, res) => {
 		return utilities.setHasUserDrawn(req.params.playerId, true);
 	})
 	.then((results) => {
-		// Now, check if the deck has to be shuffled
-		return utilities.totalCardsOnDeck();
-	})
-	.then((results) => {
-		// Create a new deck if there are no cards left
-		if(results[0].dataValues.rows === 0) {
-			return utilities.newShuffledDeck()
-			.then((results) => {
-				return utilities.removeCardsInPlayFromDeck();
-			})
-		}
-	})
-	.then((results) => {
-		res.status(200).json("OK");
+		res.status(200).json(resultObj);
 	})
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while drawing card for player", error)));
 
@@ -304,6 +313,9 @@ router.post("/game/draw/:playerId", (req, res) => {
 router.post("/game/discard/:playerId/:cardId", (req, res) => {
 	console.log(req.path);
 
+	let resultObj = {};
+	resultObj.playerId = req.params.playerId;
+
 	let nextPlayerId = null;
 
 	// Start by getting the next player
@@ -311,10 +323,14 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 	.then((results) => {
 		 nextPlayerId = results[0].id;
 
+		 resultObj.nextPlayerId = nextPlayerId;
+
 		// Check if it is this player's turn
 		return utilities.isPlayerTurn(req.params.playerId)
 	})
 	.then((user) => {
+		resultObj.isPlayerTurn = user[0].isTurn;
+
 		if(user[0].isTurn === false) {
 			throw new Error("Not your turn yet");
 		}
@@ -323,9 +339,8 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 		return utilities.isWildCard(req.params.cardId);
 	})
 	.then((results) => {
-		let resultObj = {
-			needToChooseColor: false
-		}
+		resultObj.isWildCard = results.isWildCard;
+		resultObj.needToChooseColor = false;
 
 		// WILD cards will result in a response of needToChooseColor: true
 		if(results.isWildCard === true) {
@@ -350,10 +365,13 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 		return utilities.doesCardMatch(req.params.cardId)
 	})
 	.then((results) => {
+		resultObj.cardMatch = results;
+
 		// If cards match, execute card play, otherwise respond with error
-		returnutilities.playCard(req.params.cardId, req.params.playerId, nextPlayerId);
+		return utilities.playCard(req.params.cardId, req.params.playerId, nextPlayerId);
 	})
 	.then((results) => {
+
 		res.status(200).json(results);
 	})
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while discarding card for player", error)));
@@ -370,6 +388,9 @@ router.get("/game/test", (req, res) => {
 router.get("/game/get-hand/:playerId", (req, res) => {
 	console.log(req.path);
 
+	let resultObj = {};
+	resultObj.playerId = req.params.playerId;
+
 	Hands.findAll({
 		where: {
 			userId: req.params.playerId
@@ -380,7 +401,20 @@ router.get("/game/get-hand/:playerId", (req, res) => {
 			throw new Error("No cards found for specified player.  Make sure cards have been dealt.");
 		}
 
-		res.status(200).json(hand);
+		// Get each card
+		const getCardPromises = [];
+
+		for(let i=0; i<hand.length; i++) {
+			let promise = utilities.getCard(hand[i].cardId);
+			getCardPromises.push(promise);
+		}
+
+		return Promise.all(getCardPromises);
+	})
+	.then((results) => {
+		resultObj.hand = results;
+
+		res.status(200).json(resultObj);
 	})
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while retrieving players hand", error)));
 });
@@ -492,5 +526,19 @@ router.get("/game/total-players", (req, res) => {
 	})
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to extract number of players", error)));
 });
+
+// Gets the top card on the discard pile
+router.get("/game/discard-pile/topcard", (req, res) => {
+	console.log(req.path);
+
+	utilities.topCardOnDiscard()
+	.then((card) => {
+		return utilities.getCard(card[0].cardId)
+	})
+	.then((card) => {
+		res.status(200).json(card);
+	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to extract top card from discard pile", error)));
+})
 
 module.exports = router;
