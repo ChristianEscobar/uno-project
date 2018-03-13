@@ -18,6 +18,8 @@ const Op = Sequelize.Op;
 
 // Sets up a new game
 router.post("/game/new-game", (req, res) => {
+	console.log(req.path);
+
 	let colorValues = null;
 
 	let populateCardsTable = false;
@@ -200,6 +202,8 @@ router.post("/game/new-game", (req, res) => {
 });
 
 router.get("/game/player-info/:playerId", (req, res) => {
+	console.log(req.path);
+
 	Users.findAll({
 		where: {id: req.params.playerId}
 	})
@@ -210,14 +214,11 @@ router.get("/game/player-info/:playerId", (req, res) => {
 });
 
 router.post("/game/new-player/:name", (req, res) => {
-	let responseObj = 
-	{
-		userId: -1
-	};
+	console.log(req.path);
 
 	Users.findAll()
 	.then((results) => {
-		// No users are playing to we can continue
+		// Check if user can be added
 		if(results.length < 2) {
 			return Users.create({
 				name: req.params.name,
@@ -226,7 +227,9 @@ router.post("/game/new-player/:name", (req, res) => {
 				isPlaying: true
 			});
 		} else {
-			res.status(200).json(responseObj);
+			const responseObj = {id: -1};
+
+			return Promise.resolve(responseObj);
 		}
 	})
 	.then((results) => {
@@ -238,6 +241,8 @@ router.post("/game/new-player/:name", (req, res) => {
 
 // Creates a new shuffled deck
 router.post("/game/create-deck", (req, res) => {
+	console.log(req.path);
+
 	utilities.newShuffledDeck()
 	.then((results) => {
 		res.status(200).json(results);
@@ -247,6 +252,8 @@ router.post("/game/create-deck", (req, res) => {
 
 // Adds one card to the player's hand
 router.post("/game/draw/:playerId", (req, res) => {
+	console.log(req.path);
+
 	// Start by checking if it is the player's turn
 	utilities.isPlayerTurn(req.params.playerId)
 	.then((user) => {
@@ -258,7 +265,7 @@ router.post("/game/draw/:playerId", (req, res) => {
 		return utilities.getHasUserDrawn(req.params.playerId)
 	})
 	.then((drawn) => {
-		if(drawn === true) {
+		if(drawn.userHasDrawn === true) {
 			throw new Error("Player has already drawn a card");
 		}
 
@@ -282,7 +289,7 @@ router.post("/game/draw/:playerId", (req, res) => {
 		if(results[0].dataValues.rows === 0) {
 			return utilities.newShuffledDeck()
 			.then((results) => {
-				return utilities.removePlayerCardsFromDeck();
+				return utilities.removeCardsInPlayFromDeck();
 			})
 		}
 	})
@@ -295,6 +302,8 @@ router.post("/game/draw/:playerId", (req, res) => {
 
 // Discards a card from the specified players hand and places on the discard pile
 router.post("/game/discard/:playerId/:cardId", (req, res) => {
+	console.log(req.path);
+
 	let nextPlayerId = null;
 
 	// Start by getting the next player
@@ -337,9 +346,12 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 			})
 		}
 
-		// Handle card matching, along with ACTION cards
-		return utilities.doesCardMatch(req.params.cardId);
-
+		// Handle card matching
+		return utilities.doesCardMatch(req.params.cardId)
+	})
+	.then((results) => {
+		// If cards match, execute card play, otherwise respond with error
+		returnutilities.playCard(req.params.cardId, req.params.playerId, nextPlayerId);
 	})
 	.then((results) => {
 		res.status(200).json(results);
@@ -349,13 +361,15 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 
 // Route for TESTING ONLY!
 router.get("/game/test", (req, res) => {
-	return utilities.test()
-	.then((results) => {
-		res.status(200).json(results);
+	utilities.drawCards(3)
+	.then((cards) => {
+		res.status(200).json(cards);
 	})
 });
 
 router.get("/game/get-hand/:playerId", (req, res) => {
+	console.log(req.path);
+
 	Hands.findAll({
 		where: {
 			userId: req.params.playerId
@@ -373,6 +387,8 @@ router.get("/game/get-hand/:playerId", (req, res) => {
 
 // Returns the current deck
 router.get("/game/get-deck", (req, res) => {
+	console.log(req.path);
+
 	Deck.findAll()
 	.then((deck) => {
 		if(deck === null || deck.length === 0) {
@@ -386,6 +402,8 @@ router.get("/game/get-deck", (req, res) => {
 
 // Returns true if it is the turn of the specified player.  False otherwise.
 router.get("/game/is-playerturn/:playerId", (req, res) => {
+	console.log(req.path);
+
 	utilities.isPlayerTurn(req.params.playerId)
 	.then((results) => {
 		res.status(200).json(results[0]);
@@ -395,6 +413,8 @@ router.get("/game/is-playerturn/:playerId", (req, res) => {
 
 // Passes the player's turn and sets it to the next player
 router.post("/game/pass/:playerId", (req, res) => {
+	console.log(req.path);
+
 	let nextPlayerId = null;
 
 	// Start by checking if it is the player's turn
@@ -404,17 +424,30 @@ router.post("/game/pass/:playerId", (req, res) => {
 			throw new Error("Not your turn yet");
 		}
 
+		// Check if this Player has drawn a card.  Can't pass if no draw baby!
+		return utilities.getHasUserDrawn(req.params.playerId);
+	})
+	.then((drawn) => {
+		if(drawn.userHasDrawn === false) {
+			throw new Error("Player has not drawn a card yet");
+		}
+
 		// Grab the next player
-		return utilities.getNextPlayer()
+		return utilities.getNextPlayer();
 	})
 	.then((results) => {
 		 nextPlayerId = results[0].id;
 
 		// Pass the player's turn
-		return utilities.setPlayerTurn(req.params.playerId, false)
+		return utilities.setPlayerTurn(req.params.playerId, false);
 	})
 	.then((results) => {
+		// Next Player's turn
 		return utilities.setPlayerTurn(nextPlayerId, true);
+	})
+	.then((results) => {
+		// Set hasDrawn value for this Player to false in preparation for next turn
+		return utilities.setHasUserDrawn(req.params.playerId, false);
 	})
 	.then((results) => {
 		res.status(200).json("OK");
@@ -424,6 +457,8 @@ router.post("/game/pass/:playerId", (req, res) => {
 
 // Changes the color of a WILD card currently on top of discard pile
 router.post("/game/change-color/:colorName", (req, res) => {
+	console.log(req.path);
+
 	let cardObj = null;
 
 	// Check if card on top is a WILD card
@@ -445,6 +480,17 @@ router.post("/game/change-color/:colorName", (req, res) => {
 		res.status(200).json("OK");
 	})
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while changing color for WILD card", error)));
+});
+
+// Gets the total number of players currently signed in
+router.get("/game/total-players", (req, res) => {
+	console.log(req.path);
+
+	utilities.totalPlayers()
+	.then((results) => {
+		res.status(200).json(results);
+	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to extract number of players", error)));
 });
 
 module.exports = router;

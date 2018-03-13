@@ -125,9 +125,62 @@ const utilities = {
 	drawCards: (numberOfCards) => {
 		console.log("===> drawCards()");
 
-		return Deck.findAll({
-			limit: numberOfCards
-		});
+		let originalDeckLength = -1;
+		let allCardsDrawn = false;
+		let drawnCards = null;
+		
+
+		// First check if the draw pile has enough cards to hand out
+		return utilities.totalCardsOnDeck()
+		.then((total) => {
+			// If the number of cards requested is greater or equal to the 
+			// number of cards left on the deck
+			// 1. Draw all the cards that are left
+			// 2. Regenerate the draw pile
+			// 3. Draw the rest
+			if(numberOfCards >= total[0].dataValues.rows) {
+				originalDeckLength = total[0].dataValues.rows;
+
+				// Draw all the cards we have on the deck
+				return Deck.findAll()
+				.then((currentCards) => {
+					drawnCards = currentCards;
+
+					// Regenerate deck
+					return utilities.newShuffledDeck()
+				})
+				.then((results) => {
+
+					// Remove cards in play from the deck
+					return utilities.removeCardsInPlayFromDeck();
+				})
+				.then((results) => {
+					// Draw the rest we need
+					numberOfCards = numberOfCards - originalDeckLength;
+
+					if(numberOfCards === 0) {
+						allCardsDrawn = true;
+
+						return Promise.resolve(drawnCards);
+					} else {
+						return Deck.findAll({
+							limit: numberOfCards
+						});
+					}
+				})
+				.then((cards) => {
+					if(allCardsDrawn === false) {
+						drawnCards = drawnCards.concat(cards);
+					}
+
+					return Promise.resolve(drawnCards);
+				})
+			} else {
+				return Deck.findAll({
+					limit: numberOfCards
+				});
+			}
+		})
 	},
 	// Deletes the specified cardIds from the Deck table
 	deleteFromDeck: (arrayOfCardIds) => {
@@ -264,7 +317,11 @@ const utilities = {
 			}
 		})
 		.then((user) => {
-			return Promise.resolve(user[0].hasDrawn);
+			let resultObj = {
+				userHasDrawn: user[0].hasDrawn
+			}
+
+			return Promise.resolve(resultObj);
 		});
 	},
 	// Gets the next player
@@ -378,13 +435,13 @@ const utilities = {
 
 		return utilities.topCardOnDiscard()
 		.then((card) => {
-			return getCard(card[0].cardId);
+			return utilities.getCard(card[0].cardId);
 		})
 		.then((card) => {
 			topCard = card;
 
 			// Get card object for the card to match to
-			return getCard(cardId);
+			return utilities.getCard(cardId);
 		})
 		.then((card) => {
 			matchCard = card;
@@ -400,23 +457,48 @@ const utilities = {
 				cardsMatch = false;
 			}
 
-			return Promise.resolve(cardsMatch);
+			let resultsObj = {
+				match: cardsMatch
+			}
+
+			return Promise.resolve(resultsObj);
 		});
 	},
 	// Gets the total number of cards in the Deck
 	totalCardsOnDeck: () => {
+		console.log("===> totalCardsOnDeck()");
+
 		return Deck.findAll({
 			attributes:[[db.sequelize.fn("COUNT", db.sequelize.col("id")), "rows"]]
 		});
 	},
-	removePlayerCardsFromDeck: () => {
+	// Gets the total number f players
+	totalPlayers: () => {
+		console.log("===> totalPlayers()");
+
+		return Users.findAll({
+			attributes:[[db.sequelize.fn("COUNT", db.sequelize.col("id")), "total_players"]]
+		});
+	},
+	// Used to remove cards currently in play from the Deck.  Mostly used after a new Deck has been created during game play
+	removeCardsInPlayFromDeck: () => {
+		console.log("===> removeCardsInPlayFromDeck()");
+
+		const arrayOfCardIds = [];
+
 		return Hands.findAll()
 		.then((results) => {
-			const arrayOfCardIds = [];
 
+			// Get cards from player hands
 			for(let i=0; i<results.length; i++) {
 				arrayOfCardIds.push(results[i].cardId);
 			}
+
+			return utilities.topCardOnDiscard();
+		})
+		.then((results) => {
+			// Get card currently on top of discard
+			arrayOfCardIds.push(results[0].cardId);
 
 			return Deck.destroy({
 				where: {
@@ -427,8 +509,57 @@ const utilities = {
 			});
 		});
 	},
-	test: () => {
-		return utilities.totalCardsOnDeck();
+	// Executes play logic for a card
+	playCard: (cardId, userId, nextPlayerId) => {
+		console.log("===> playCard()");
+
+		let resultObj = {
+			result: ""
+		};
+
+		return utilities.getCard(cardId)
+		.then((card) => {
+			if(card[0].card === "REVERSE") {
+				// For now, in a 2-player game, the turn goes back to the next player.
+				return utilities.setPlayerTurn(nextPlayerId, true)
+				.then((results) => {
+					return utilities.setPlayerTurn(userId, false)
+				})
+				.then((results) => {
+					resultObj.result = "OK";
+				});
+			} else if(card[0].card === "SKIP") {
+				// For now, in a 2-player game, the turn goes back to the player that played the card.
+				return utilities.setPlayerTurn(nextPlayerId, false)
+				.then((results) => {
+					return utilities.setPlayerTurn(userId, true)
+				})
+				.then((results) => {
+					resultObj.result = "OK";
+				});
+			} else if(card[0].card === "DRAW_TWO") {
+				// Add two cards to the next player's hand.  Turn goes to the next player
+				return utilities.drawCards(2)
+				.then((cards) => {
+					utilities.addCardsToPlayerHand(nextPlayerId, nextPlayerId);
+				})
+				.then((results) => {
+					resultObj.result = "OK";
+				});
+			} else {
+				// If execution reaches here, that means the card matched on color or a number
+				return utilities.setPlayerTurn(nextPlayerId, true)
+				.then((results) => {
+					return utilities.setPlayerTurn(userId, false)
+				})
+				.then((results) => {
+					resultObj.result = "OK";
+				});
+			}
+		})
+		.then((result) => {
+			return Promise.resolve(resultObj);
+		})
 	}
 }
 
