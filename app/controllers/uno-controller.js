@@ -168,11 +168,11 @@ router.post("/game/new-game", (req, res) => {
 	})
 	.then((results) => {
 		// Deal 7 cards to player 1, this should be more dynamic instead of hard coding
-		return utilities.dealCards(1, utilities.drawCards, utilities.addCardsToPlayerHand, utilities.deleteFromDeck);
+		return utilities.dealCards(1);
 	})
 	.then((results) => {
 		// Deal 7 cards to player 2, this should be more dynamic instead of hard coding
-		return utilities.dealCards(2, utilities.drawCards, utilities.addCardsToPlayerHand, utilities.deleteFromDeck);
+		return utilities.dealCards(2);
 	})
 	.then((results) => {
 		// Draw one card from the top of the deck
@@ -191,7 +191,7 @@ router.post("/game/new-game", (req, res) => {
 	})
 	.then((results) => {
 		// Set player 1 as next player
-		return utilities.setPlayerTurn(1);
+		return utilities.setPlayerTurn(1, true);
 	})
 	.then((results) => {
 		res.status(200).json("OK");
@@ -245,82 +245,114 @@ router.post("/game/create-deck", (req, res) => {
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while creating deck.",error)));
 });
 
-// Returns the top card from the deck NOT USED for now.
-/*
-router.get("/game/draw-card", (req, res) => {
+// Adds one card to the player's hand
+router.post("/game/draw/:playerId", (req, res) => {
+	// Start by checking if it is the player's turn
+	utilities.isPlayerTurn(req.params.playerId)
+	.then((user) => {
+		if(user[0].isTurn === false) {
+			throw new Error("Not your turn yet");
+		}
 
-	// Extract the top most card
-	Deck.findAll({
-		limit: 1
+		// Now check if the user has already drawn a card
+		return utilities.getHasUserDrawn(req.params.playerId)
+	})
+	.then((drawn) => {
+		if(drawn === true) {
+			throw new Error("Player has already drawn a card");
+		}
+
+		// Draw one card
+		return utilities.drawCards(1);
+	})
+	.then((card) => {
+		// Add card to player's hand
+		return utilities.addCardsToPlayerHand(req.params.playerId, card);
 	})
 	.then((results) => {
-
-		if(results.length === 0) {
-			throw new Error("No rows found in Deck table.");
+		// Set hasDrawn to true
+		return utilities.setHasUserDrawn(req.params.playerId, true);
+	})
+	.then((results) => {
+		// Now, check if the deck has to be shuffled
+		return utilities.totalCardsOnDeck();
+	})
+	.then((results) => {
+		// Create a new deck if there are no cards left
+		if(results[0].dataValues.rows === 0) {
+			return utilities.newShuffledDeck()
+			.then((results) => {
+				return utilities.removePlayerCardsFromDeck();
+			})
 		}
-		// Now extract the card from the Cards table
-		Cards.findAll({
-			where: {
-				id: results[0].cardId
-			}
-		})
-		.then((card) => {
-			res.status(200).json(card);
-		})
 	})
-	.catch((error) => {
-		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while getting the top card from the deck", error));
+	.then((results) => {
+		res.status(200).json("OK");
 	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while drawing card for player", error)));
+
 });
-*/
 
 // Discards a card from the specified players hand and places on the discard pile
 router.post("/game/discard/:playerId/:cardId", (req, res) => {
-	utilities.removeFromHandAndAddToDiscard(req.params.playerId, req.params.cardId)
+	let nextPlayerId = null;
+
+	// Start by getting the next player
+	utilities.getNextPlayer()
+	.then((results) => {
+		 nextPlayerId = results[0].id;
+
+		// Check if it is this player's turn
+		return utilities.isPlayerTurn(req.params.playerId)
+	})
+	.then((user) => {
+		if(user[0].isTurn === false) {
+			throw new Error("Not your turn yet");
+		}
+
+		// Is the card being discarded a WILD or WILD DRAW FOUR
+		return utilities.isWildCard(req.params.cardId);
+	})
+	.then((results) => {
+		let resultObj = {
+			needToChooseColor: false
+		}
+
+		// WILD cards will result in a response of needToChooseColor: true
+		if(results.isWildCard === true) {
+			resultObj.needToChooseColor = true;
+
+			res.status(200).json(resultObj);
+		} else if(results.isWildDrawFour === true) {
+
+			resultObj.needToChooseColor = true;
+
+			// Now, give the next player 4 cards
+			utilities.drawCards(4)
+			.then((cards) => {
+				return utilities.addCardsToPlayerHand(nextPlayerId, cards);
+			})
+			.then((results) => {
+				res.status(200).json(resultObj);
+			})
+		}
+
+		// Handle card matching, along with ACTION cards
+		return utilities.doesCardMatch(req.params.cardId);
+
+	})
 	.then((results) => {
 		res.status(200).json(results);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while discarding card from player", error)));
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while discarding card for player", error)));
 });
 
-// Draws cards for the provided player
-router.post("/game/draw/:playerId", (req, res) => {
-	// First check the card currently on the discard pile
-	utilities.topCardOnDiscard()
-	.then((results) => {
-		res.status(200).json(results);
-	})
-	
-});
-
-//TEST route
+// Route for TESTING ONLY!
 router.get("/game/test", (req, res) => {
-	
-	/*
-	Values.findAll({
-		where: {
-			value: {
-				[Op.in]: [10,11,12,13,14]
-			}
-		},
-		include: [{
-			model: Cards
-		}]
-	})
+	return utilities.test()
 	.then((results) => {
 		res.status(200).json(results);
 	})
-	.catch((error) => {
-		console.log(error);
-		res.status(500).json(error);
-	})*/
-
-	//29 and 30 are WILD and WILD_DRAW_FOUR
-	utilities.isWildCard(82)
-	.then((result) => {
-		res.status(200).json(result);
-	})
-
 });
 
 router.get("/game/get-hand/:playerId", (req, res) => {
@@ -336,9 +368,7 @@ router.get("/game/get-hand/:playerId", (req, res) => {
 
 		res.status(200).json(hand);
 	})
-	.catch((error) => {
-		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while retrieving players hand", error));
-	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while retrieving players hand", error)));
 });
 
 // Returns the current deck
@@ -351,14 +381,70 @@ router.get("/game/get-deck", (req, res) => {
 
 		res.status(200).json(deck);
 	})
-	.catch((error) => {
-		res.status(500).json(utilities.createErrorMessageJSON("Error encountered while retrieving deck", error));
-	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while retrieving deck", error)));
 });
 
 // Returns true if it is the turn of the specified player.  False otherwise.
 router.get("/game/is-playerturn/:playerId", (req, res) => {
+	utilities.isPlayerTurn(req.params.playerId)
+	.then((results) => {
+		res.status(200).json(results[0]);
+	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while checking for player turn", error)));
+});
 
+// Passes the player's turn and sets it to the next player
+router.post("/game/pass/:playerId", (req, res) => {
+	let nextPlayerId = null;
+
+	// Start by checking if it is the player's turn
+	utilities.isPlayerTurn(req.params.playerId)
+	.then((user) => {
+		if(user[0].isTurn === false) {
+			throw new Error("Not your turn yet");
+		}
+
+		// Grab the next player
+		return utilities.getNextPlayer()
+	})
+	.then((results) => {
+		 nextPlayerId = results[0].id;
+
+		// Pass the player's turn
+		return utilities.setPlayerTurn(req.params.playerId, false)
+	})
+	.then((results) => {
+		return utilities.setPlayerTurn(nextPlayerId, true);
+	})
+	.then((results) => {
+		res.status(200).json("OK");
+	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while passing player turn", error)));
+});
+
+// Changes the color of a WILD card currently on top of discard pile
+router.post("/game/change-color/:colorName", (req, res) => {
+	let cardObj = null;
+
+	// Check if card on top is a WILD card
+	utilities.topCardOnDiscard()
+	.then((card) => {
+		cardObj = card;
+
+		return utilities.isWildCard(card[0].cardId)
+	})
+	.then((results) => {
+		if(results.isWildCard === false && results.isWildDrawFour === false) {
+			throw new Error("Only WILD cards can have their color changed.");
+		}
+
+		// NOTE, we need to create card images to handle WILD card color choosing
+		return utilities.setWildCardColor(cardObj[0].cardId, req.params.colorName);
+	})
+	.then((results) => {
+		res.status(200).json("OK");
+	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while changing color for WILD card", error)));
 });
 
 module.exports = router;
