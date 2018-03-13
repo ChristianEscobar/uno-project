@@ -66,9 +66,11 @@
                 <!-- This is a spacer -->
               </div>
 
-              <div class="col s5 m5 l5 guide4 center-align pile right">
+              <div class="col s5 m5 l5 guide4 center-align pile">
                 <h5 class="center">Discard</h5>
-                <img class="responsive-img" src="assets/images/cards/small/red_0.png">
+                <div id="discard">
+                  <img class="responsive-img" src="assets/images/cards/small/red_0.png">
+                </div>
               </div>
             </div>
           </div>
@@ -91,13 +93,15 @@
 
         <div class="col m10 l12 center-align">
           <h5 class="center">Player 1 Hand</h5>
-          <img class="responsive-img left" src="assets/images/cards/small/blue_0.png">
-          <img class="responsive-img" src="assets/images/cards/small/blue_1.png">
-          <img class="responsive-img" src="assets/images/cards/small/blue_2.png">
-          <img class="responsive-img" src="assets/images/cards/small/blue_3.png">
-          <img class="responsive-img" src="assets/images/cards/small/blue_4.png">
-          <img class="responsive-img" src="assets/images/cards/small/blue_5.png">
-          <img class="responsive-img" src="assets/images/cards/small/blue_6.png">
+          <div id="hand">
+            <img class="responsive-img" ondragover="updateDiscard(event)" src="assets/images/cards/small/blue_0.png">
+            <img class="responsive-img" src="assets/images/cards/small/blue_1.png">
+            <img class="responsive-img" src="assets/images/cards/small/blue_2.png">
+            <img class="responsive-img" src="assets/images/cards/small/blue_3.png">
+            <img class="responsive-img" src="assets/images/cards/small/blue_4.png">
+            <img class="responsive-img" src="assets/images/cards/small/blue_5.png">
+            <img class="responsive-img" src="assets/images/cards/small/blue_6.png">
+          </div>
         </div>
 
         <div class="col m1 l12">
