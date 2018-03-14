@@ -26,6 +26,36 @@ nav {
   border: 1px solid yellow;
 }
 
-.center-content {
+.card-display {
 
+}
+
+.card_container{
+	cursor: pointer;
+	position: relative;
+  height: 2px;
+}
+
+.card_front, .card_back {
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	position: absolute;
+	cursor: pointer;
+	border: thin solid #ccc;
+	border-radius: 5px;
+	background-color: white;
+  top: -2px;
+  left: 45px;
+  height: 185px;
+}
+
+.card_front {
+	z-index: 2;
+	transform: rotateY(0deg);
+	background-position: -86px -69px;
+}
+
+.card_back {
+	transform: rotateY(180deg);
+	background-position: -915px -867px;
 }
