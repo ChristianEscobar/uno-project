@@ -1,5 +1,8 @@
 # uno-project
 
+### Database
+The application requires a MySQL database.  Using your GUI of choice, create a MySQL database with the following name:  ***uno_db_seq***
+
 ### Sequelize Seeders
 There are a set of tables that must be pre-populated with data in order for the game to function.  Sequelize-cli is used to run seeder files that will populate the tables.
 
