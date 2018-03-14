@@ -226,13 +226,18 @@ const utilities = {
 		console.log("===> dealCards()");
 
 		let allCards = null;
+		let resultObj = {};
+		resultObj.userId = userId;
 
 		// Draw 7 cards
 		return utilities.drawCards(7)
 		.then((cards) => {
-			allCards = cards;
+			resultObj.userHand = cards;
 
 			return utilities.addCardsToPlayerHand(userId, cards);
+		})
+		.then((results) => {
+			return Promise.resolve(resultObj);
 		});
 	},
 	// Gets the card on top of the discard pile
@@ -433,6 +438,8 @@ const utilities = {
 		let matchCard = null;
 		let cardsMatch = false;
 
+		let resultsObj = {};
+
 		return utilities.topCardOnDiscard()
 		.then((card) => {
 			return utilities.getCard(card[0].cardId);
@@ -440,14 +447,15 @@ const utilities = {
 		.then((card) => {
 			topCard = card;
 
+			resultsObj.topCardOnDiscard = topCard;
+
 			// Get card object for the card to match to
 			return utilities.getCard(cardId);
 		})
 		.then((card) => {
 			matchCard = card;
 
-			console.log("top", topCard);
-			console.log("match", matchCard);
+			resultsObj.discarded = matchCard;
 
 			if(topCard.value[0].card === matchCard.value[0].card) {
 				cardsMatch = true;
@@ -457,9 +465,7 @@ const utilities = {
 				cardsMatch = false;
 			}
 
-			let resultsObj = {
-				match: cardsMatch
-			}
+			resultsObj.match = cardsMatch;
 
 			return Promise.resolve(resultsObj);
 		});
@@ -476,9 +482,21 @@ const utilities = {
 	totalPlayers: () => {
 		console.log("===> totalPlayers()");
 
+		let resultObj = {};
+
 		return Users.findAll({
 			attributes:[[db.sequelize.fn("COUNT", db.sequelize.col("id")), "total_players"]]
-		});
+		})
+		.then((count) => {
+			resultObj.count = count;
+
+			return Users.findAll();
+		})
+		.then((users) => {
+			resultObj.users = users;
+
+			return Promise.resolve(resultObj);
+		})
 	},
 	// Used to remove cards currently in play from the Deck.  Mostly used after a new Deck has been created during game play
 	removeCardsInPlayFromDeck: () => {
@@ -513,47 +531,64 @@ const utilities = {
 	playCard: (cardId, userId, nextPlayerId) => {
 		console.log("===> playCard()");
 
-		let resultObj = {
-			result: ""
-		};
+		let resultObj = {};
 
 		return utilities.getCard(cardId)
 		.then((card) => {
 			if(card[0].card === "REVERSE") {
+				resultObj.card = card[0].card;
+
 				// For now, in a 2-player game, the turn goes back to the next player.
 				return utilities.setPlayerTurn(nextPlayerId, true)
 				.then((results) => {
+					resultObj.nextPlayer = results;
+
 					return utilities.setPlayerTurn(userId, false)
 				})
 				.then((results) => {
-					resultObj.result = "OK";
+					resultObj.currentPlayer = results;
 				});
 			} else if(card[0].card === "SKIP") {
+				resultObj.card = card[0].card;
+
 				// For now, in a 2-player game, the turn goes back to the player that played the card.
 				return utilities.setPlayerTurn(nextPlayerId, false)
 				.then((results) => {
+					resultObj.nextPlayer = results;
+
 					return utilities.setPlayerTurn(userId, true)
 				})
 				.then((results) => {
-					resultObj.result = "OK";
+					resultObj.currentPlayer = results;
 				});
 			} else if(card[0].card === "DRAW_TWO") {
+				resultObj.card = card[0].card;
+
 				// Add two cards to the next player's hand.  Turn goes to the next player
 				return utilities.drawCards(2)
 				.then((cards) => {
 					utilities.addCardsToPlayerHand(nextPlayerId, nextPlayerId);
+
+					return utilities.setPlayerTurn(nextPlayerId, true);
 				})
 				.then((results) => {
-					resultObj.result = "OK";
-				});
+					resultObj.nextPlayer = results;
+
+					return utilities.setPlayerTurn(userId, false)
+				})
+				.then((results) => {
+					return resultObj.currentPlayer = results;
+				})
 			} else {
 				// If execution reaches here, that means the card matched on color or a number
 				return utilities.setPlayerTurn(nextPlayerId, true)
 				.then((results) => {
+					resultObj.nextPlayer = results;
+
 					return utilities.setPlayerTurn(userId, false)
 				})
 				.then((results) => {
-					resultObj.result = "OK";
+					return resultObj.currentPlayer = results;
 				});
 			}
 		})

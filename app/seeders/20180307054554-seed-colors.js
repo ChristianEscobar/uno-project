@@ -32,6 +32,11 @@ module.exports = {
       colorValue: 4,
       createdAt: Sequelize.literal('CURRENT_TIMESTAMP(3)'),
       updatedAt: Sequelize.literal('CURRENT_TIMESTAMP(3)')
+    },{
+      color: "NO_COLOR", // Used for WILD cards
+      colorValue: 5,
+      createdAt: Sequelize.literal('CURRENT_TIMESTAMP(3)'),
+      updatedAt: Sequelize.literal('CURRENT_TIMESTAMP(3)')
     }], {});
   },
 
