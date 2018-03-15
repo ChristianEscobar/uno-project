@@ -443,7 +443,7 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 			}
 
 			// Add the card to the discard pile
-			return utilities.addToDiscardPile(req.params.cardId)
+			return utilities.removeFromHandAndAddToDiscard(req.params.playerId, req.params.cardId)
 			.then((results) => {
 				// Set hasDiscarded
 				return utilities.setPlayerHasDiscarded(req.params.playerId, true);
@@ -472,6 +472,10 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 			console.log("Cards matched execute playCard()");
 
 			return utilities.playCard(req.params.cardId, req.params.playerId, nextPlayerId);	
+		} else if(results === false) {
+			// The card that was discarded did not match the one on the discard pile
+			// Fix the result object so that the next player is still the current player
+			resultObj.nextPlayerId = resultObj.playerId;
 		}
 
 		return Promise.resolve(true);
@@ -479,6 +483,17 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 	.then((results) => {
 		if(matchedOnColorOrNumber === true) {
 			resultObj.nextPlayerId = Number(results.nextPlayer);
+		}
+
+		// Finally, after all that, check if this Player is the winner!!!!
+		return utilities.totalCardsInHand(req.params.playerId);
+	})
+	.then((count) => {
+
+		if(count[0].dataValues.total_cards === 0) {
+			resultObj.isWinner = true;
+		} else {
+			resultObj.isWinner = false;
 		}
 
 		res.status(200).json(resultObj);
@@ -499,7 +514,7 @@ router.get("/game/hand/:playerId", (req, res) => {
 	console.log(req.path);
 
 	let resultObj = {};
-	resultObj.playerId = req.params.playerId;
+	resultObj.playerId = Number(req.params.playerId);
 
 	Hands.findAll({
 		where: {
@@ -638,7 +653,7 @@ router.put("/game/pass/:playerId", (req, res) => {
 });
 
 // Changes the color of a WILD card currently on top of discard pile
-router.put("/game/discard/topcard/:colorName", (req, res) => {
+router.put("/game/discard/topcard/:colorName/:playerId", (req, res) => {
 	console.log(req.path);
 
 	let cardObj = null;
@@ -686,14 +701,10 @@ router.put("/game/discard/topcard/:colorName", (req, res) => {
 		return utilities.setPlayerTurn(nextPlayer[0].id, true);
 	})
 	.then((results) => {
-		// Get the current Player
-		return utilities.getTurn();
-	})
-	.then((currentPlayer) => {
-		resultObj.player = currentPlayer[0].id;
+		resultObj.player = Number(req.params.playerId);
 
-		// Set current Player turn to true
-		return utilities.setPlayerTurn(currentPlayer[0].id, false);
+		// Set current Player turn to false
+		return utilities.setPlayerTurn(Number(req.params.playerId), false);
 	})
 	.then((results) => {
 		res.status(200).json(resultObj);
@@ -716,8 +727,12 @@ router.get("/game/total/players", (req, res) => {
 router.get("/game/discard/topcard", (req, res) => {
 	console.log(req.path);
 
+	let resultObj = {};
+
 	utilities.topCardOnDiscard()
 	.then((card) => {
+		resultObj.discard = card;
+
 		if(card === null || card.length === 0) {
 			throw new Error("No cards found on discard pile.  Make sure a game has been started");
 		}
@@ -725,7 +740,9 @@ router.get("/game/discard/topcard", (req, res) => {
 		return utilities.getCard(card[0].cardId)
 	})
 	.then((card) => {
-		res.status(200).json(card);
+		resultObj.card = card;
+
+		res.status(200).json(resultObj);
 	})
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to extract top card from discard pile", error)));
 })
