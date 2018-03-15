@@ -355,6 +355,8 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 
 	let nextPlayerId = null;
 
+	let matchedOnColorOrNumber = false;
+
 	// Add logic to check if user who has discarded will not have anymore cards
 	// That is a winner!
 
@@ -388,13 +390,23 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 			throw new Error("Player needs to choose color for discarded WILD card");
 		}
 	
+		// Get Card object for discarded card
 		return utilities.getCard(req.params.cardId);
 	})
 	.then((card) => {
 		// Discarded card
 		resultObj.discarded = card;
 
-		return Promise.resolve(true);
+		// Check if the discarded card belongs to the User's hand
+		return utilities.doesPlayerOwnCard(req.params.playerId, req.params.cardId)
+		.then((count) => {
+			if(count[0].dataValues.card_count === 0) {
+				throw new Error("Player does not own specified cardId " + req.params.cardId);
+			}
+			else {
+				return Promise.resolve(true);
+			}
+		});
 	})
 	.then((results) => {
 		// Card on top of discard
@@ -443,25 +455,31 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 				return Promise.resolve(true);
 			})
 		} else {
+			// Execution should reach here if the card being discarded is not a WILD card
 			resultObj.needToChooseColor = false;
 
-			// Handle card matching
+			// Handle card matching for non WILD cards
 			return utilities.doesCardMatch(req.params.cardId)
 		}
 	})
 	.then((results) => {
 		resultObj.cardMatch = results;
 
-		console.log(results);
-
 		// If cards match and card discarded was not a WILD, execute card play
-		if(results.match === true && (resultObj.isWildCard === false) && resultObj.isWildDrawFour === false) {
+		if(results === true && (resultObj.isWild === false) && resultObj.isWildDrawFour === false) {
+			matchedOnColorOrNumber = true;
+
 			console.log("Cards matched execute playCard()");
 
 			return utilities.playCard(req.params.cardId, req.params.playerId, nextPlayerId);	
 		}
+
+		return Promise.resolve(true);
 	})
 	.then((results) => {
+		if(matchedOnColorOrNumber === true) {
+			resultObj.nextPlayerId = Number(results.nextPlayer);
+		}
 
 		res.status(200).json(resultObj);
 	})
