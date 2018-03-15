@@ -18,7 +18,7 @@ const Op = Sequelize.Op;
 
 // Loads the login page
 router.get("/", (req, res) => {
-	res.redirect("/login");
+	res.redirect("/login.html");
 });
 
 // Sets up a new game
