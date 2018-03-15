@@ -416,7 +416,9 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 		resultObj.needToChooseColor = false;
 
 		// WILD cards will result in a response of needToChooseColor: true
-		if(results.isWildCard === true) {
+		if(results.isWildCard === true && results.isWildDrawFour) {
+			// fix if statement to handle both WILD card types
+
 			resultObj.needToChooseColor = true;
 
 			// Add the card to the discard pile
