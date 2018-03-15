@@ -355,6 +355,8 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 
 	let nextPlayerId = null;
 
+	let matchedOnColorOrNumber = false;
+
 	// Add logic to check if user who has discarded will not have anymore cards
 	// That is a winner!
 
@@ -465,6 +467,8 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 
 		// If cards match and card discarded was not a WILD, execute card play
 		if(results === true && (resultObj.isWild === false) && resultObj.isWildDrawFour === false) {
+			matchedOnColorOrNumber = true;
+
 			console.log("Cards matched execute playCard()");
 
 			return utilities.playCard(req.params.cardId, req.params.playerId, nextPlayerId);	
@@ -473,6 +477,9 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 		return Promise.resolve(true);
 	})
 	.then((results) => {
+		if(matchedOnColorOrNumber === true) {
+			resultObj.nextPlayerId = results.nextPlayer;
+		}
 
 		res.status(200).json(resultObj);
 	})

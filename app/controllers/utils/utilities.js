@@ -612,7 +612,10 @@ const utilities = {
 	playCard: (cardId, userId, nextPlayerId) => {
 		console.log("===> playCard()");
 
-		let resultObj = {};
+		let resultObj = {
+			currentPlayer: userId,
+			nextPlayer: nextPlayerId
+		};
 
 		return utilities.getCard(cardId)
 		.then((card) => {
@@ -621,18 +624,16 @@ const utilities = {
 			if(card.value[0].card === "REVERSE") {
 				resultObj.card = card;
 
-				// For now, in a 2-player game, the turn goes back to the next player.
-				return utilities.setPlayerTurn(nextPlayerId, true)
+				// For now, in a 2-player game, the turn goes back to the current player.
+				return utilities.setPlayerTurn(userId, true)
 				.then((results) => {
-					resultObj.nextPlayer = results;
+					resultObj.nextPlayer = userId;
 
 					console.log("=====> Set turn to true", nextPlayerId);
 
 					return utilities.setPlayerTurn(userId, false)
 				})
 				.then((results) => {
-					resultObj.currentPlayer = results;
-
 					console.log("=====> Set turn to false ", userId);
 
 					return Promise.resolve(true);
@@ -640,19 +641,17 @@ const utilities = {
 			} else if(card.value[0].card === "SKIP") {
 				resultObj.card = card;
 
-				// For now, in a 2-player game, the turn goes back to the player that played the card.
+				// For now, in a 2-player game, the turn goes back to the current player.
 				return utilities.setPlayerTurn(nextPlayerId, false)
 				.then((results) => {
 					console.log("=====> Set turn to false ", nextPlayerId);
-
-					resultObj.nextPlayer = results;
 
 					return utilities.setPlayerTurn(userId, true)
 				})
 				.then((results) => {
 					console.log("=====> Set turn to true ", userId);
 
-					resultObj.currentPlayer = results;
+					resultObj.nextPlayer = userId;
 
 					// Since the turn is going back to the current player, hasDrawn and hasDiscarded
 					// need to be set to false
@@ -675,7 +674,7 @@ const utilities = {
 				return utilities.drawCards(2, false)
 				.then((cards) => {
 
-					return utilities.addCardsToPlayerHand(nextPlayerId, nextPlayerId);
+					return utilities.addCardsToPlayerHand(nextPlayerId, cards);
 				})
 				.then((results) => {
 					console.log("=====> Got 2 cards ", nextPlayerId);
@@ -685,14 +684,12 @@ const utilities = {
 				.then((results) => {
 					console.log("=====> Set turn to true ", nextPlayerId);
 
-					resultObj.nextPlayer = results;
+					resultObj.nextPlayer = nextPlayerId;
 
-					return utilities.setPlayerTurn(userId, false)
+					return utilities.setPlayerTurn(userId, false);
 				})
 				.then((results) => {
 					console.log("=====> Set turn to false ", userId);
-
-					resultObj.currentPlayer = results;
 
 					return Promise.resolve(true);
 				})
@@ -702,7 +699,7 @@ const utilities = {
 				.then((results) => {
 					console.log("=====> Set turn to true ", nextPlayerId);
 
-					resultObj.nextPlayer = results;
+					resultObj.nextPlayer = nextPlayerId;
 
 					return utilities.setPlayerTurn(userId, false)
 				})
