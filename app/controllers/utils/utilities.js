@@ -579,6 +579,17 @@ const utilities = {
 			return Promise.resolve(resultObj);
 		})
 	},
+	// Get the number of cards in Player's hand
+	totalCardsInHand: (playerId) => {
+		console.log("===> totalCardsInHand()");
+
+		return Hands.findAll({
+			where:{
+				userId: playerId
+			},
+			attributes:[[db.sequelize.fn("COUNT", db.sequelize.col("id")), "total_cards"]]
+		});	
+	},
 	// Used to remove cards currently in play from the Deck.  Mostly used after a new Deck has been created during game play
 	removeCardsInPlayFromDeck: () => {
 		console.log("===> removeCardsInPlayFromDeck()");
