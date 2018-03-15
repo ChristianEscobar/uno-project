@@ -300,7 +300,8 @@ const utilities = {
 		return Users.update({
   		isTurn: turn,
   		hasDrawn: false,
-  		hadDiscarded: false
+  		hasDiscarded: false,
+  		colorPending: false
 		}, {
   		where: {
     		id: playerId
