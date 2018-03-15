@@ -478,7 +478,7 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 	})
 	.then((results) => {
 		if(matchedOnColorOrNumber === true) {
-			resultObj.nextPlayerId = results.nextPlayer;
+			resultObj.nextPlayerId = Number(results.nextPlayer);
 		}
 
 		res.status(200).json(resultObj);

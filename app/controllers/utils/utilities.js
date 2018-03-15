@@ -631,7 +631,7 @@ const utilities = {
 
 					console.log("=====> Set turn to true", nextPlayerId);
 
-					return utilities.setPlayerTurn(userId, false)
+					return utilities.setPlayerTurn(nextPlayerId, false)
 				})
 				.then((results) => {
 					console.log("=====> Set turn to false ", userId);
