@@ -416,37 +416,28 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 		resultObj.needToChooseColor = false;
 
 		// WILD cards will result in a response of needToChooseColor: true
-		if(results.isWildCard === true && results.isWildDrawFour) {
-			// fix if statement to handle both WILD card types
+		if(results.isWildCard === true || results.isWildDrawFour === true) {
+			// The only difference in logic between these two cards, is that the DRAW FOUR 
+			// will need to add 4 cards to the next Player's hand.
 
 			resultObj.needToChooseColor = true;
+
+			if(results.isWildDrawFour === true) {
+				// Deal 4 cards to the next player 4 cards
+				utilities.drawCards(4, false)
+				.then((cards) => {
+					return utilities.addCardsToPlayerHand(nextPlayerId, cards);
+				});
+			}
 
 			// Add the card to the discard pile
 			return utilities.addToDiscardPile(req.params.cardId)
 			.then((results) => {
 				// Set hasDiscarded
-				return utilities.setPlayerHasDiscarded(req.params.playerId);
+				return utilities.setPlayerHasDiscarded(req.params.playerId, true);
 			})
 			.then((results) => {
-				return Promise.resolve(true);
-			})
-		} else if(results.isWildDrawFour === true) {
-
-			resultObj.needToChooseColor = true;
-
-			// Now, give the next player 4 cards
-			return utilities.drawCards(4, false)
-			.then((cards) => {
-				return utilities.addCardsToPlayerHand(nextPlayerId, cards);
-			})
-			.then((results) => {
-
-				// Add the card to the discard pile
-				return utilities.addToDiscardPile(req.params.cardId);
-			})
-			.then((results) => {
-				// Set hasDiscarded
-				return utilities.setPlayerHasDiscarded(req.params.playerId);
+				return utilities.setPlayerColorPending(req.params.playerId, true);
 			})
 			.then((results) => {
 				return Promise.resolve(true);
@@ -464,7 +455,7 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 		console.log(results);
 
 		// If cards match and card discarded was not a WILD, execute card play
-		if(results.match === true && resultObj.isWildCard === false) {
+		if(results.match === true && (resultObj.isWildCard === false) && resultObj.isWildDrawFour === false) {
 			console.log("Cards matched execute playCard()");
 
 			return utilities.playCard(req.params.cardId, req.params.playerId, nextPlayerId);	
