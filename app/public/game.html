@@ -119,10 +119,32 @@
     <script type="text/javascript" src="assets/js/dummyDB.json"></script>
     <script type="text/javascript" src="assets/js/object_factory.js"></script>
     <script type="text/javascript">
-      ;(function(){
-        var myGame = new Game("draw_pile", {game: "draw", data: dummyDB});
-        console.log(myGame);
-      })();
+
+    ;(function(){
+
+      function deckQuery() {
+
+        var currentURL = window.location.origin;
+
+        $.ajax({ url: currentURL + "/game/deck", method: "GET" })
+          .then(function(deckData) {
+
+            console.log("------------------------------------");
+            console.log("URL: " + currentURL + "/game/deck");
+            console.log("------------------------------------");
+
+            console.log(deckData);
+            console.log("------------------------------------");
+
+            var myGame = new Game("draw_pile", {game: "draw", data: deckData});
+            console.log(myGame);
+
+          });
+      }
+
+      deckQuery();
+    })();
+
     </script>
   </body>
 

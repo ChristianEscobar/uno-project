@@ -10,7 +10,7 @@ $("#play").on("click", function(event) {
 	const playerName = $("#name").val().trim();
 
  	$.post("/game/player", {name: playerName}, function(result){
- 		
+
  		if(result.id > 0) {
 			sessionStorage.setItem("playerId", result.id);
 

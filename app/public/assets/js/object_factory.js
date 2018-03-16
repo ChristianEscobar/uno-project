@@ -23,7 +23,8 @@
 			for (var i = this.deckData.length - 1; i >= 0; i--) {
 				var card = new Card();
 				card.id = "card-" + i;
-				card.data = this.deckData[i];
+				card.data = this.deckData[i].card[0];
+				console.log(card.data);
 				card.buildCard(parentFrag);
 			};
 			deck_div.appendChild(parentFrag);
@@ -55,8 +56,10 @@
 			frontImg.className = "front_val responsive-img card-display";
 			backImg.className = "back_val responsive-img card-display";
 
-			frontImg.src = this.data.cardId;
-			backImg.src = this.data.cardBack;
+			var cardBack = "assets/images/cards/small/card_back_alt.png"
+
+			frontImg.src = "assets/images/cards/small/" + this.data.smallImage;
+			backImg.src = cardBack;
 
 			this.cardFront.appendChild(frontImg);
 			this.cardBack.appendChild(backImg);
