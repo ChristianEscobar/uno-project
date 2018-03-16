@@ -26,8 +26,9 @@
     "enum": "^2.5.0",
     "express": "^4.16.2",
     "method-override": "^2.3.10",
+    "mysql": "^2.15.0",
     "mysql2": "^1.5.2",
-    "sequelize": "^4.35.2",
+    "sequelize": "^4.37.0",
     "sequelize-cli": "^4.0.0",
     "shuffle": "^0.2.2"
   }
