@@ -41,7 +41,7 @@
 		this.id = "";
 		this.data = "";
 		this.cardCont = document.createElement("div");
-		this.cardCont.className = "card_container guide10";
+		this.cardCont.className = "card_container guide1";
 		this.cardFront = document.createElement("div");
 		this.cardFront.className = "card_front";
 		this.cardBack = document.createElement("div");
