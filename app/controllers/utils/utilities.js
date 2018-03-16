@@ -739,7 +739,17 @@ const utilities = {
 				cardId: cardId
 			},
 			attributes:[[db.sequelize.fn("COUNT", db.sequelize.col("id")), "card_count"]]
-		})
+		});
+	},
+	// Deletes the specified Player from the database
+	deletePlayer: (userId) => {
+		console.log("===> deletePlayer()");
+
+		return Users.destroy({
+			where: {
+				id: userId
+			}
+		});
 	}
 }
 

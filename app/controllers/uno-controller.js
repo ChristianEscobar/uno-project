@@ -276,18 +276,33 @@ router.get("/game/player/:playerId", (req, res) => {
 router.post("/game/player/:name", (req, res) => {
 	console.log(req.path);
 
+	let responseObj = {}
+
 	Users.findAll()
 	.then((results) => {
 		// Check if user can be added
-		if(results.length < 2) {
+		if(results.length === 0) {
 			return Users.create({
+				id: 1,  // Lame hack to handle only two players.
+				name: req.params.name,
+				totalWins: 0,
+				totalLosses: 0,
+				isPlaying: true
+			});
+		} else if(results.length === 1) {
+			// Continuing lame hack to handle only two players.
+			const playerId = (results[0].id === 1) ? 2 : 1;
+
+			return Users.create({
+				id: playerId,
 				name: req.params.name,
 				totalWins: 0,
 				totalLosses: 0,
 				isPlaying: true
 			});
 		} else {
-			const responseObj = {id: -1};
+			responseObj.id = -1;
+			responseObj.message = "Enough players have joined the game";
 
 			return Promise.resolve(responseObj);
 		}
@@ -766,6 +781,16 @@ router.get("/game/discard/topcard", (req, res) => {
 		res.status(200).json(resultObj);
 	})
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to extract top card from discard pile", error)));
+})
+
+router.delete("/game/player/:playerId", (req, res) => {
+	console.log(req.path);
+
+	utilities.deletePlayer(req.params.playerId)
+	.then((results) => {
+		res.status(200).json("OK");
+	})
+	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to delete player", error)));
 })
 
 module.exports = router;
