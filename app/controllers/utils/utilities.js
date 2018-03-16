@@ -1,3 +1,5 @@
+"strict mode"
+
 const db = require("../../models");
 const Values = db.Values;
 const Colors = db.Colors;
@@ -122,7 +124,7 @@ const utilities = {
 	},
 	// Draws the specified number of cards from the Deck table
 	
-	drawCards: (numberOfCards) => {
+	drawCards: (numberOfCards, firstDraw) => {
 		console.log("===> drawCards()");
 
 		let originalDeckLength = -1;
@@ -176,9 +178,23 @@ const utilities = {
 					return Promise.resolve(drawnCards);
 				})
 			} else {
-				return Deck.findAll({
-					limit: numberOfCards
-				});
+				// A first draw, when a new game is being setup, should always reach here.
+				// We do not want any WILD as the first card.  HOUSE RULE!  =)
+				if(firstDraw === true) {
+					return Deck.findAll({
+						where: {
+							cardId:{
+								[Op.between]: [1, 100]
+							}
+						},
+						order: [["id", "DESC"]],
+						limit: numberOfCards
+					});
+				} else {
+					return Deck.findAll({
+						limit: numberOfCards
+					});
+				}
 			}
 		})
 	},
@@ -219,7 +235,6 @@ const utilities = {
 
 			return Promise.all(createPromises);
 		});
-
 	},
 	// Used to deal cards for new game, each player gets 7 cards
 	dealCards: (userId) => {
@@ -230,7 +245,7 @@ const utilities = {
 		resultObj.userId = userId;
 
 		// Draw 7 cards
-		return utilities.drawCards(7)
+		return utilities.drawCards(7, false)
 		.then((cards) => {
 			resultObj.userHand = cards;
 
@@ -284,10 +299,51 @@ const utilities = {
 
 		return Users.update({
   		isTurn: turn,
+  		hasDrawn: false,
+  		hasDiscarded: false,
+  		colorPending: false
 		}, {
   		where: {
     		id: playerId
   		}
+		});
+	},
+	// Gets the current player
+	getTurn: () => {
+		console.log("===> getTurn()");
+
+		return Users.findAll({
+			where: {
+				isTurn: true
+			}
+		})
+	},
+	// Sets hasDiscarded
+	setPlayerHasDiscarded: (playerId, hasDiscarded) => {
+		console.log("===> setPlayerHasDiscarded()");
+
+		return Users.update({
+  		hasDiscarded: hasDiscarded,
+		}, {
+  		where: {
+    		id: playerId
+  		}
+		});
+	},
+	getPlayerHasDiscarded: (playerId) => {
+		console.log("===> getPlayerHasDiscarded()");
+
+		return Users.findAll({
+			where: {
+				id: playerId
+			}
+		})
+		.then((user) => {
+			let resultObj = {
+				userHasDiscarded: user[0].hasDiscarded
+			}
+
+			return Promise.resolve(resultObj);
 		});
 	},
 	// Gets the player turn
@@ -301,8 +357,8 @@ const utilities = {
 		});
 	},
 	// Sets the drawn value for the specified user
-	setHasUserDrawn: (playerId, drawn) => {
-		console.log("===> setHasUserDrawn()");
+	setPlayerHasDrawn: (playerId, drawn) => {
+		console.log("===> setPlayerHasDrawn()");
 
 		return Users.update({
   		hasDrawn: drawn,
@@ -313,8 +369,8 @@ const utilities = {
 		});
 	},
 	// Checks if the user has drawn a card
-	getHasUserDrawn: (playerId) => {
-		console.log("===> getHasUserDrawn()");
+	getPlayerHasDrawn: (playerId) => {
+		console.log("===> getPlayerHasDrawn()");
 
 		return Users.findAll({
 			where: {
@@ -324,6 +380,35 @@ const utilities = {
 		.then((user) => {
 			let resultObj = {
 				userHasDrawn: user[0].hasDrawn
+			}
+
+			return Promise.resolve(resultObj);
+		});
+	},
+	// Sets colorPending
+	setPlayerColorPending: (playerId, needsToChoose) => {
+		console.log("===> setPlayerColorPending()");
+
+		return Users.update({
+  		colorPending: needsToChoose,
+		}, {
+  		where: {
+    		id: playerId
+  		}
+		});
+	},
+	// Gets colorPending
+	getPlayerColorPending: (playerId) => {
+		console.log("===> getPlayerColorPending()");
+
+		return Users.findAll({
+			where: {
+				id: playerId
+			}
+		})
+		.then((user) => {
+			let resultObj = {
+				colorPending: user[0].colorPending
 			}
 
 			return Promise.resolve(resultObj);
@@ -341,22 +426,16 @@ const utilities = {
 	},
 	// Sets the color of a WILD card
 	setWildCardColor: (cardId, colorName) => {
-		// NOTE, need to set colorId to a card with color only??
 		console.log("===> setWildCardColor()");
 
-		return Colors.findAll({
-			where: {
-				color: colorName.toUpperCase()
-			}
-		})
-		.then((color) => {
-			Discard.update({
-  			colorId: color[0].id
+	 	return Discard.update({
+  		chosenColor: colorName,
+  		chosenColorSmallImage: "wild_" + colorName.toLowerCase() + ".png",
+  		chosenColorLargeImage: "wild_" + colorName.toLowerCase() + "_large.png"
 			}, {
   			where: {
-    			id: cardId
+    			cardId: cardId
   			}
-			});
 		});
 	},
 	// Get card value
@@ -438,16 +517,15 @@ const utilities = {
 		let matchCard = null;
 		let cardsMatch = false;
 
-		let resultsObj = {};
+		let chosenColor = ""; // used for WILD cars that have had a color chosen
 
 		return utilities.topCardOnDiscard()
 		.then((card) => {
+			chosenColor = card[0].chosenColor;
 			return utilities.getCard(card[0].cardId);
 		})
 		.then((card) => {
 			topCard = card;
-
-			resultsObj.topCardOnDiscard = topCard;
 
 			// Get card object for the card to match to
 			return utilities.getCard(cardId);
@@ -455,19 +533,22 @@ const utilities = {
 		.then((card) => {
 			matchCard = card;
 
-			resultsObj.discarded = matchCard;
+			console.log("=====> Card on top of discard: ", topCard.value[0].card, " ", topCard.color[0].color);
+			console.log("=====> Card discarded: ", matchCard.value[0].card, " ", matchCard.color[0].color);
 
 			if(topCard.value[0].card === matchCard.value[0].card) {
+				// Match by card color
 				cardsMatch = true;
-			} else if(topCard.color[0].color === matchCard.color[0].color) {
+			} else if((topCard.color[0].color === matchCard.color[0].color) || chosenColor === matchCard.color[0].color) {
+				// Match by card color
 				cardsMatch = true;
 			} else {
 				cardsMatch = false;
 			}
 
-			resultsObj.match = cardsMatch;
+			console.log("=====> Is this a match?", cardsMatch);
 
-			return Promise.resolve(resultsObj);
+			return Promise.resolve(cardsMatch);
 		});
 	},
 	// Gets the total number of cards in the Deck
@@ -497,6 +578,17 @@ const utilities = {
 
 			return Promise.resolve(resultObj);
 		})
+	},
+	// Get the number of cards in Player's hand
+	totalCardsInHand: (playerId) => {
+		console.log("===> totalCardsInHand()");
+
+		return Hands.findAll({
+			where:{
+				userId: playerId
+			},
+			attributes:[[db.sequelize.fn("COUNT", db.sequelize.col("id")), "total_cards"]]
+		});	
 	},
 	// Used to remove cards currently in play from the Deck.  Mostly used after a new Deck has been created during game play
 	removeCardsInPlayFromDeck: () => {
@@ -531,69 +623,122 @@ const utilities = {
 	playCard: (cardId, userId, nextPlayerId) => {
 		console.log("===> playCard()");
 
-		let resultObj = {};
+		let resultObj = {
+			currentPlayer: userId,
+			nextPlayer: nextPlayerId
+		};
 
 		return utilities.getCard(cardId)
 		.then((card) => {
-			if(card[0].card === "REVERSE") {
-				resultObj.card = card[0].card;
+			console.log("=====> Card in play ", card.value[0].card, " ", card.color[0].color);
 
-				// For now, in a 2-player game, the turn goes back to the next player.
-				return utilities.setPlayerTurn(nextPlayerId, true)
+			if(card.value[0].card === "REVERSE") {
+				resultObj.card = card;
+
+				// For now, in a 2-player game, the turn goes back to the current player.
+				return utilities.setPlayerTurn(userId, true)
 				.then((results) => {
-					resultObj.nextPlayer = results;
+					resultObj.nextPlayer = userId;
 
-					return utilities.setPlayerTurn(userId, false)
+					console.log("=====> Set turn to true", nextPlayerId);
+
+					return utilities.setPlayerTurn(nextPlayerId, false)
 				})
 				.then((results) => {
-					resultObj.currentPlayer = results;
-				});
-			} else if(card[0].card === "SKIP") {
-				resultObj.card = card[0].card;
+					console.log("=====> Set turn to false ", userId);
 
-				// For now, in a 2-player game, the turn goes back to the player that played the card.
+					return Promise.resolve(true);
+				});
+			} else if(card.value[0].card === "SKIP") {
+				resultObj.card = card;
+
+				// For now, in a 2-player game, the turn goes back to the current player.
 				return utilities.setPlayerTurn(nextPlayerId, false)
 				.then((results) => {
-					resultObj.nextPlayer = results;
+					console.log("=====> Set turn to false ", nextPlayerId);
 
 					return utilities.setPlayerTurn(userId, true)
 				})
 				.then((results) => {
-					resultObj.currentPlayer = results;
+					console.log("=====> Set turn to true ", userId);
+
+					resultObj.nextPlayer = userId;
+
+					// Since the turn is going back to the current player, hasDrawn and hasDiscarded
+					// need to be set to false
+					return utilities.setPlayerHasDiscarded(userId, false);
+				})
+				.then((results) => {
+					console.log("=====> Set hasDiscarded to true ", userId);
+
+					// Set hasDrawn to false
+					return utilities.setPlayerHasDrawn(userId, false);
+				})
+				.then((results) => {
+				
+					return Promise.resolve(true);
 				});
-			} else if(card[0].card === "DRAW_TWO") {
-				resultObj.card = card[0].card;
+			} else if(card.value[0].card === "DRAW_TWO") {
+				resultObj.card = card;
 
 				// Add two cards to the next player's hand.  Turn goes to the next player
-				return utilities.drawCards(2)
+				return utilities.drawCards(2, false)
 				.then((cards) => {
-					utilities.addCardsToPlayerHand(nextPlayerId, nextPlayerId);
+
+					return utilities.addCardsToPlayerHand(nextPlayerId, cards);
+				})
+				.then((results) => {
+					console.log("=====> Got 2 cards ", nextPlayerId);
 
 					return utilities.setPlayerTurn(nextPlayerId, true);
 				})
 				.then((results) => {
-					resultObj.nextPlayer = results;
+					console.log("=====> Set turn to true ", nextPlayerId);
 
-					return utilities.setPlayerTurn(userId, false)
+					resultObj.nextPlayer = nextPlayerId;
+
+					return utilities.setPlayerTurn(userId, false);
 				})
 				.then((results) => {
-					return resultObj.currentPlayer = results;
+					console.log("=====> Set turn to false ", userId);
+
+					return Promise.resolve(true);
 				})
 			} else {
 				// If execution reaches here, that means the card matched on color or a number
 				return utilities.setPlayerTurn(nextPlayerId, true)
 				.then((results) => {
-					resultObj.nextPlayer = results;
+					console.log("=====> Set turn to true ", nextPlayerId);
+
+					resultObj.nextPlayer = nextPlayerId;
 
 					return utilities.setPlayerTurn(userId, false)
 				})
 				.then((results) => {
-					return resultObj.currentPlayer = results;
+					console.log("=====> Set turn to false ", userId);
+
+					return Promise.resolve(resultObj);
 				});
 			}
 		})
+		.then((results) => {
+			// Add the card to the discard pile and remove it from the Player's hand
+			return utilities.removeFromHandAndAddToDiscard(userId, cardId);
+		})
 		.then((result) => {
 			return Promise.resolve(resultObj);
+		})
+	},
+	// Checks if the user has the specified card in their hand
+	doesPlayerOwnCard: (userId, cardId) => {
+		console.log("===> doesPlayerOwnCard()");
+
+		return Hands.findAll({
+			where: {
+				userId: userId,
+				cardId: cardId
+			},
+			attributes:[[db.sequelize.fn("COUNT", db.sequelize.col("id")), "card_count"]]
 		})
 	}
 }
