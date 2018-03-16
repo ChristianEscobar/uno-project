@@ -15,6 +15,7 @@
 
 	// Deck
 	var Deck = function(deck_div, option){
+
 		this.deckData = option.data;
 		this.buildDeck = function(){
 			var parentFrag = document.createDocumentFragment();
@@ -41,7 +42,7 @@
 		this.id = "";
 		this.data = "";
 		this.cardCont = document.createElement("div");
-		this.cardCont.className = "card_container guide10";
+		this.cardCont.className = "card_container guide1";
 		this.cardFront = document.createElement("div");
 		this.cardFront.className = "card_front";
 		this.cardBack = document.createElement("div");
@@ -51,8 +52,8 @@
 				frontImg = document.createElement("img"),
 				backImg = document.createElement("img")
 			flipDiv.className = "flip";
-			frontImg.className = "front_val responsive-img";
-			backImg.className = "back_val responsive-img";
+			frontImg.className = "front_val responsive-img card-display";
+			backImg.className = "back_val responsive-img card-display";
 
 			frontImg.src = this.data.cardId;
 			backImg.src = this.data.cardBack;

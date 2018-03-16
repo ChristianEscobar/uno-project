@@ -33,7 +33,7 @@ app.use("/", routes);
 db.Values.hasMany(db.sequelize.models.Cards, {foreignKey: "valueId"});
 db.Colors.hasMany(db.sequelize.models.Cards, {foreignKey: "colorId"});
 
-// Sounds a bit weird to say but we need to specify that 
+// Sounds a bit weird to say but we need to specify that
 // a deck has many cards
 db.Cards.hasMany(db.sequelize.models.Deck, {foreignKey: "cardId"});
 db.Cards.hasMany(db.sequelize.models.Discard, {foreignKey: "cardId"});
@@ -51,5 +51,3 @@ db.sequelize.sync({force: true})
 }).catch((error) => {
 	console.error(error);
 });
-
-
