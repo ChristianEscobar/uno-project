@@ -26,6 +26,11 @@ router.get("/login-quick", (req, res) => {
 	res.redirect("/login-quick.html");
 });
 
+// Game Tester
+router.get("/game-test", (req, res) => {
+	res.redirect("/game-test.html");
+});
+
 // Sets up a new game
 router.post("/game/start", (req, res) => {
 	console.log(req.path);
@@ -259,7 +264,7 @@ router.post("/game/start", (req, res) => {
 	.then((results) => {
 		res.status(200).json(resultObj);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to setup a new game.", error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while attempting to setup a new game.", error) } ) );
 });
 
 router.get("/game/player/:playerId", (req, res) => {
@@ -275,7 +280,7 @@ router.get("/game/player/:playerId", (req, res) => {
 
 		res.status(200).json(results);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while extracting player details.", error)));
+	.catch((error) => res.status(500).json( { error : utilities.createErrorMessageJSON("Error encountered while extracting player details.", error) } ) );
 });
 
 router.post("/game/player", (req, res) => {
@@ -327,7 +332,7 @@ router.post("/game/deck", (req, res) => {
 	.then((results) => {
 		res.status(200).json(results);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while creating deck.",error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while creating deck.",error) } ) );
 });
 
 // Adds one card to the player's hand
@@ -381,7 +386,7 @@ router.post("/game/draw", (req, res) => {
 	.then((results) => {
 		res.status(200).json(resultObj);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while drawing card for player", error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while drawing card for player", error) } ) );
 
 });
 
@@ -539,7 +544,7 @@ router.post("/game/discard", (req, res) => {
 
 		res.status(200).json(resultObj);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while discarding card for player", error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while discarding card for player", error) } ) );
 });
 
 // Route for TESTING ONLY!
@@ -582,7 +587,7 @@ router.get("/game/hand/:playerId", (req, res) => {
 
 		res.status(200).json(resultObj);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while retrieving players hand", error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while retrieving players hand", error) } ) );
 });
 
 // Returns the current deck
@@ -607,7 +612,7 @@ router.get("/game/deck", (req, res) => {
 	.then((results) => {
 		res.status(200).json(results);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while retrieving deck", error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while retrieving deck", error) } ) );
 });
 
 // Returns the Player whose turn it is
@@ -621,7 +626,7 @@ router.get("/game/player/current/turn", (req, res) => {
 		}
 		res.status(200).json(results[0]);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while checking for whose turn it is", error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while checking for whose turn it is", error) } ) );
 });
 
 // Passes the player's turn and sets it to the next player
@@ -690,7 +695,7 @@ router.put("/game/pass", (req, res) => {
 	.then((results) => {
 		res.status(200).json(resultObj);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while passing player turn", error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while passing player turn", error) } ) );
 });
 
 // Changes the color of a WILD card currently on top of discard pile
@@ -750,7 +755,7 @@ router.put("/game/discard/topcard", (req, res) => {
 	.then((results) => {
 		res.status(200).json(resultObj);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while changing color for WILD card", error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while changing color for WILD card", error) } ) );
 });
 
 // Gets the total number of players currently signed in
@@ -761,7 +766,7 @@ router.get("/game/total/players", (req, res) => {
 	.then((results) => {
 		res.status(200).json(results);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to extract number of players", error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while attempting to extract number of players", error) } ) );
 });
 
 // Gets the top card on the discard pile
@@ -785,7 +790,7 @@ router.get("/game/discard/topcard", (req, res) => {
 
 		res.status(200).json(resultObj);
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to extract top card from discard pile", error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while attempting to extract top card from discard pile", error) } ) );
 })
 
 router.delete("/game/player", (req, res) => {
@@ -795,7 +800,7 @@ router.delete("/game/player", (req, res) => {
 	.then((results) => {
 		res.status(200).json("OK");
 	})
-	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to delete player", error)));
+	.catch((error) => res.status(500).json( { error: utilities.createErrorMessageJSON("Error encountered while attempting to delete player", error) } ) );
 })
 
 module.exports = router;
