@@ -67,6 +67,15 @@ router.post("/game/start", (req, res) => {
 	.then((deckDestroy) => {
 		resultObj.deckDestroy = deckDestroy;
 
+		// Clear the Hands table
+		return Hands.destroy({
+			where: {},  // We want all the rows gone!
+			truncate: true
+		});
+	})
+	.then((handsDestroy) => {
+		resultObj.handsDestroy = handsDestroy;
+
 		// Pull data from Colors table
 		return Colors.findAll();	
 	})
@@ -210,6 +219,14 @@ router.post("/game/start", (req, res) => {
 
 		resultObj.dealtCards = dealtCards;
 
+		// Clear the Discards table
+		return Discard.destroy({
+			where: {},  // We want all the rows gone!
+			truncate: true
+		}); 
+	})
+	.then((resutls) => {
+
 		// Draw one card from the top of the deck
 		return utilities.drawCards(1, true);
 	})
@@ -229,6 +246,10 @@ router.post("/game/start", (req, res) => {
 	.then((results) => {
 		// Set player 1 as next player
 		return utilities.setPlayerTurn(1, true);
+	})
+	.then((results) => {
+		// Set player 2 turn to false
+		return utilities.setPlayerTurn(2, false);
 	})
 	.then((results) => {
 		res.status(200).json(resultObj);
