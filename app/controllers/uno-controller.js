@@ -21,6 +21,11 @@ router.get("/", (req, res) => {
 	res.redirect("/login.html");
 });
 
+// Quick login
+router.get("/login-quick", (req, res) => {
+	res.redirect("/login-quick.html");
+});
+
 // Sets up a new game
 router.post("/game/start", (req, res) => {
 	console.log(req.path);
@@ -273,7 +278,7 @@ router.get("/game/player/:playerId", (req, res) => {
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while extracting player details.", error)));
 });
 
-router.post("/game/player/:name", (req, res) => {
+router.post("/game/player", (req, res) => {
 	console.log(req.path);
 
 	let responseObj = {}
@@ -284,7 +289,7 @@ router.post("/game/player/:name", (req, res) => {
 		if(results.length === 0) {
 			return Users.create({
 				id: 1,  // Lame hack to handle only two players.
-				name: req.params.name,
+				name: req.body.name,
 				totalWins: 0,
 				totalLosses: 0,
 				isPlaying: true
@@ -295,7 +300,7 @@ router.post("/game/player/:name", (req, res) => {
 
 			return Users.create({
 				id: playerId,
-				name: req.params.name,
+				name: req.body.name,
 				totalWins: 0,
 				totalLosses: 0,
 				isPlaying: true
@@ -315,7 +320,7 @@ router.post("/game/player/:name", (req, res) => {
 
 
 // Creates a new shuffled deck
-router.post("/game/new/deck", (req, res) => {
+router.post("/game/deck", (req, res) => {
 	console.log(req.path);
 
 	utilities.newShuffledDeck()
@@ -326,14 +331,14 @@ router.post("/game/new/deck", (req, res) => {
 });
 
 // Adds one card to the player's hand
-router.post("/game/draw/:playerId", (req, res) => {
+router.post("/game/draw", (req, res) => {
 	console.log(req.path);
 
 	let resultObj = {};
-	resultObj.playerId = Number(req.params.playerId);
+	resultObj.playerId = Number(req.body.playerId);
 
 	// Start by checking if it is the player's turn
-	utilities.isPlayerTurn(req.params.playerId)
+	utilities.isPlayerTurn(req.body.playerId)
 	.then((user) => {
 		if(user === null || user.length === 0) {
 			throw new Error("No users found");
@@ -344,7 +349,7 @@ router.post("/game/draw/:playerId", (req, res) => {
 		}
 
 		// Now check if the user is pending a color choice
-		return utilities.getPlayerColorPending(req.params.playerId);
+		return utilities.getPlayerColorPending(req.body.playerId);
 	})
 	.then((pending) => {
 		if(pending.colorPending === true) {
@@ -352,7 +357,7 @@ router.post("/game/draw/:playerId", (req, res) => {
 		}
 
 		// Now check if the user has already drawn a card
-		return utilities.getPlayerHasDrawn(req.params.playerId);
+		return utilities.getPlayerHasDrawn(req.body.playerId);
 	})
 	.then((drawn) => {
 		if(drawn.userHasDrawn === true) {
@@ -367,11 +372,11 @@ router.post("/game/draw/:playerId", (req, res) => {
 		resultObj.card = card;
 
 		// Add card to player's hand
-		return utilities.addCardsToPlayerHand(req.params.playerId, card);
+		return utilities.addCardsToPlayerHand(req.body.playerId, card);
 	})
 	.then((results) => {
 		// Set hasDrawn to true
-		return utilities.setPlayerHasDrawn(req.params.playerId, true);
+		return utilities.setPlayerHasDrawn(req.body.playerId, true);
 	})
 	.then((results) => {
 		res.status(200).json(resultObj);
@@ -381,13 +386,13 @@ router.post("/game/draw/:playerId", (req, res) => {
 });
 
 // Discards a card from the specified players hand and places on the discard pile
-router.post("/game/discard/:playerId/:cardId", (req, res) => {
+router.post("/game/discard", (req, res) => {
 	console.log(req.path);
 
 	let resultObj = {};
 
 	// The Player that discarded
-	resultObj.playerId = Number(req.params.playerId);
+	resultObj.playerId = Number(req.body.playerId);
 
 	let nextPlayerId = null;
 
@@ -409,7 +414,7 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 		resultObj.nextPlayerId = nextPlayerId;
 
 		// Check if it is this player's turn
-		return utilities.isPlayerTurn(req.params.playerId)
+		return utilities.isPlayerTurn(req.body.playerId)
 	})
 	.then((user) => {
 		resultObj.isPlayerTurn = user[0].isTurn;
@@ -419,7 +424,7 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 		}
 
 		// Check if Player's color choice is pending
-		return utilities.getPlayerColorPending(req.params.playerId);
+		return utilities.getPlayerColorPending(req.body.playerId);
 	})
 	.then((pending) => {
 		if(pending.colorPending === true) {
@@ -427,17 +432,17 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 		}
 	
 		// Get Card object for discarded card
-		return utilities.getCard(req.params.cardId);
+		return utilities.getCard(req.body.cardId);
 	})
 	.then((card) => {
 		// Discarded card
 		resultObj.discarded = card;
 
 		// Check if the discarded card belongs to the User's hand
-		return utilities.doesPlayerOwnCard(req.params.playerId, req.params.cardId)
+		return utilities.doesPlayerOwnCard(req.body.playerId, req.body.cardId)
 		.then((count) => {
 			if(count[0].dataValues.card_count === 0) {
-				throw new Error("Player does not own specified cardId " + req.params.cardId);
+				throw new Error("Player does not own specified cardId " + req.body.cardId);
 			}
 			else {
 				return Promise.resolve(true);
@@ -456,7 +461,7 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 		resultObj.topOfDiscard = card;
 
 		// Is the card being discarded a WILD or WILD DRAW FOUR
-		return utilities.isWildCard(req.params.cardId);
+		return utilities.isWildCard(req.body.cardId);
 	})
 	.then((results) => {
 		resultObj.isWild = results.isWildCard;
@@ -479,13 +484,13 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 			}
 
 			// Add the card to the discard pile
-			return utilities.removeFromHandAndAddToDiscard(req.params.playerId, req.params.cardId)
+			return utilities.removeFromHandAndAddToDiscard(req.body.playerId, req.body.cardId)
 			.then((results) => {
 				// Set hasDiscarded
-				return utilities.setPlayerHasDiscarded(req.params.playerId, true);
+				return utilities.setPlayerHasDiscarded(req.body.playerId, true);
 			})
 			.then((results) => {
-				return utilities.setPlayerColorPending(req.params.playerId, true);
+				return utilities.setPlayerColorPending(req.body.playerId, true);
 			})
 			.then((results) => {
 				return Promise.resolve(true);
@@ -495,7 +500,7 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 			resultObj.needToChooseColor = false;
 
 			// Handle card matching for non WILD cards
-			return utilities.doesCardMatch(req.params.cardId)
+			return utilities.doesCardMatch(req.body.cardId)
 		}
 	})
 	.then((results) => {
@@ -507,7 +512,7 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 
 			console.log("Cards matched execute playCard()");
 
-			return utilities.playCard(req.params.cardId, req.params.playerId, nextPlayerId);	
+			return utilities.playCard(req.body.cardId, req.body.playerId, nextPlayerId);	
 		} else if(results === false) {
 			// The card that was discarded did not match the one on the discard pile
 			// Fix the result object so that the next player is still the current player
@@ -522,7 +527,7 @@ router.post("/game/discard/:playerId/:cardId", (req, res) => {
 		}
 
 		// Finally, after all that, check if this Player is the winner!!!!
-		return utilities.totalCardsInHand(req.params.playerId);
+		return utilities.totalCardsInHand(req.body.playerId);
 	})
 	.then((count) => {
 
@@ -620,7 +625,7 @@ router.get("/game/player/current/turn", (req, res) => {
 });
 
 // Passes the player's turn and sets it to the next player
-router.put("/game/pass/:playerId", (req, res) => {
+router.put("/game/pass", (req, res) => {
 	console.log(req.path);
 
 	let nextPlayerId = null;
@@ -628,7 +633,7 @@ router.put("/game/pass/:playerId", (req, res) => {
 	let resultObj = {};
 
 	// Start by checking if it is the player's turn
-	utilities.isPlayerTurn(req.params.playerId)
+	utilities.isPlayerTurn(req.body.playerId)
 	.then((user) => {
 		if(user === null || user.length === 0) {
 			throw new Error("User not found");
@@ -640,13 +645,13 @@ router.put("/game/pass/:playerId", (req, res) => {
 		}
 
 		// Check if this Player has either drawn or discarded.  Can't pass if no draw or discard baby!
-		return utilities.getPlayerHasDrawn(req.params.playerId);
+		return utilities.getPlayerHasDrawn(req.body.playerId);
 	})
 	.then((drawn) => {
 		if(drawn.userHasDrawn === false) {
 
 			// Check if they have discarded
-			return utilities.getPlayerHasDiscarded(req.params.playerId)
+			return utilities.getPlayerHasDiscarded(req.body.playerId)
 			.then((discard) => {
 				console.log("======>", discard);
 				if(discard.userHasDiscarded === false) {
@@ -668,7 +673,7 @@ router.put("/game/pass/:playerId", (req, res) => {
 		 resultObj.nextPlayerId = nextPlayerId;
 
 		// Pass the player's turn
-		return utilities.setPlayerTurn(req.params.playerId, false);
+		return utilities.setPlayerTurn(req.body.playerId, false);
 	})
 	.then((results) => {
 		// Next Player's turn
@@ -676,11 +681,11 @@ router.put("/game/pass/:playerId", (req, res) => {
 	})
 	.then((results) => {
 		// Set hasDrawn value for this Player to false in preparation for next turn
-		return utilities.setPlayerHasDrawn(req.params.playerId, false);
+		return utilities.setPlayerHasDrawn(req.body.playerId, false);
 	})
 	.then((results) => {
 		// Set hasDiscarded value for this Player to false in preparation for next turn
-		return utilities.setPlayerHasDiscarded(req.params.playerId, false);
+		return utilities.setPlayerHasDiscarded(req.body.playerId, false);
 	})
 	.then((results) => {
 		res.status(200).json(resultObj);
@@ -689,7 +694,7 @@ router.put("/game/pass/:playerId", (req, res) => {
 });
 
 // Changes the color of a WILD card currently on top of discard pile
-router.put("/game/discard/topcard/:colorName/:playerId", (req, res) => {
+router.put("/game/discard/topcard", (req, res) => {
 	console.log(req.path);
 
 	let cardObj = null;
@@ -715,10 +720,10 @@ router.put("/game/discard/topcard/:colorName/:playerId", (req, res) => {
 			throw new Error("Only WILD cards can have their color changed.");
 		}
 
-		return utilities.setWildCardColor(cardObj[0].cardId, req.params.colorName);
+		return utilities.setWildCardColor(cardObj[0].cardId, req.body.colorName);
 	})
 	.then((results) => {
-		resultObj.colorChoice = req.params.colorName;
+		resultObj.colorChoice = req.body.colorName;
 
 		// Get the updated card
 		return utilities.topCardOnDiscard();
@@ -737,10 +742,10 @@ router.put("/game/discard/topcard/:colorName/:playerId", (req, res) => {
 		return utilities.setPlayerTurn(nextPlayer[0].id, true);
 	})
 	.then((results) => {
-		resultObj.player = Number(req.params.playerId);
+		resultObj.player = Number(req.body.playerId);
 
 		// Set current Player turn to false
-		return utilities.setPlayerTurn(Number(req.params.playerId), false);
+		return utilities.setPlayerTurn(Number(req.body.playerId), false);
 	})
 	.then((results) => {
 		res.status(200).json(resultObj);
@@ -783,10 +788,10 @@ router.get("/game/discard/topcard", (req, res) => {
 	.catch((error) => res.status(500).json(utilities.createErrorMessageJSON("Error encountered while attempting to extract top card from discard pile", error)));
 })
 
-router.delete("/game/player/:playerId", (req, res) => {
+router.delete("/game/player", (req, res) => {
 	console.log(req.path);
 
-	utilities.deletePlayer(req.params.playerId)
+	utilities.deletePlayer(req.body.playerId)
 	.then((results) => {
 		res.status(200).json("OK");
 	})
