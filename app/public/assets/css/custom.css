@@ -42,6 +42,11 @@ nav {
 
 .card-display {
   width: 100px;
+  
+}
+
+#discard img.responsive-img.card-display {
+    position: absolute;
 }
 
 .card_container{
