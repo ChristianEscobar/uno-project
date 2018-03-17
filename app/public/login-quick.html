@@ -77,16 +77,24 @@
     <!-- Modal Structure -->
     <div id="modal1" class="modal modal">
       <div class="modal-content">
-        <form class="col s8">
-          <div class="row">
-            <div class="input-field col s8">
-              <i class="material-icons prefix">account_circle</i>
-              <input placeholder="Enter your name" id="name" type="text" class="validate" required="true" aria-required="true">
-              <label for="first_name">Player Name</label>
-              <span id="user-messages"></span>
+        <div class="row">
+          <form class="col s12 m6 l6">
+            <div class="row">
+              <div class="input-field col s8">
+                <i class="material-icons prefix">account_circle</i>
+                <input placeholder="Enter your name" id="name" type="text" class="validate" required="true" aria-required="true">
+                <label for="first_name">Player Name</label>
+                <span id="user-messages"></span>
+              </div>
             </div>
+          </form>
+          <div class="col s12 m6 l6" id="wait_indicator">
+            <!-- <p id="wait_text">Waiting for a second player.</p>
+            <div class="progress">
+              <div class="indeterminate"></div>
+            </div> -->
           </div>
-        </form>
+        </div>
       </div>
       <div class="modal-footer">
         <button href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Cancel</button>
