@@ -1,5 +1,5 @@
 ;(function(window){
-	// Placing Deck
+	// Placing Deck in Div
 	var DeckPlacement = function(el, option){
 		this.el = document.getElementById(el);
 		this.option = option;
@@ -13,7 +13,7 @@
 
 	};
 
-	// Deck
+	// Deck building
 	var Deck = function(deck_div, option){
 
 		this.deckData = option.data;
@@ -33,7 +33,7 @@
 
 	};
 
-	// Placing user's hand
+	// Placemnet of user's hand in div
 	var HandPlacement = function(el, option){
 		this.el = document.getElementById(el);
 		this.option = option;
@@ -47,7 +47,7 @@
 
 	};
 
-	//Player's hand
+	//Player's hand build
 	var Hand = function(hand, option){
 
 		this.handData = option.data;
@@ -61,6 +61,40 @@
 				card.buildCard(parentFrag);
 			};
 			hand.appendChild(parentFrag);
+
+		};
+	};
+
+	// Discard Pile Placement
+	var DiscardPlacement = function(el, option){
+
+		this.el = document.getElementById(el);
+		this.option = option;
+
+		this.discard = document.createElement("div");
+		this.discard.id = "discard";
+		this.gameDiscard = new Discard(this.discard, option);
+		this.gameDiscard.buildDiscard();
+
+		this.el.appendChild(this.discard);
+
+	}
+
+	//Discard Pile build
+	var Discard = function(discard, option){
+
+		this.discardData = option.data;
+		this.buildDiscard = function(){
+			var parentFrag = document.createDocumentFragment();
+			discard.innerHTML = "";
+			for (var i = Object.keys(this.discardData).length - 1; i >= 0; i--) {
+				var card = new Card();
+				card.id = "card-" + i;
+				card.data = this.discardData.card.card[i];
+				console.log(card.data);
+				card.buildCard(parentFrag);
+			};
+			discard.appendChild(parentFrag);
 
 		};
 	};
@@ -107,12 +141,8 @@
 		}
 	}
 
-	// Discard Pile
-	var DiscardPile = function(){
-
-	}
-	// 	Holders
-	// 	----
-	// 	accept or reject
 	window.DeckPlacement = DeckPlacement;
+	window.HandPlacement = HandPlacement;
+	window.DiscardPlacement = DiscardPlacement;
+
 })(window);
