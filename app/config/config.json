@@ -1,7 +1,7 @@
 {
   "development": {
     "username": "root",
-    "password": "",
+    "password": "qwerty",
     "database": "uno_db_seq",
     "host": "127.0.0.1",
     "dialect": "mysql"
