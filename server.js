@@ -43,7 +43,7 @@ db.Users.hasMany(db.sequelize.models.Hands, {foreignKey: "userId"});
 //db.Deck.hasMany(db.sequelize.models.Cards, {foreignKey: "deckId"});
 
 
-db.sequelize.sync({force: true})
+db.sequelize.sync({force: false})
 .then(() => {
 	app.listen(port, () => {
 		console.log("Server started, listening on port " + port);
