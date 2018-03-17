@@ -91,7 +91,7 @@
           <!-- Spacer -->
         </div>
 
-        <div class="col m10 l12 center-align">
+        <div class="col m10 l12 center-align" id="hand_div">
           <h5 class="center">Current Player Hand</h5>
           <div id="hand">
             <img class="responsive-img card-display" ondragover="updateDiscard(event)" src="assets/images/cards/small/blue_0.png">
@@ -122,6 +122,7 @@
 
     ;(function(){
 
+      // Working query which triggers creation of the deck.
       function deckQuery() {
 
         var currentURL = window.location.origin;
@@ -129,21 +130,22 @@
         $.ajax({ url: currentURL + "/game/deck", method: "GET" })
           .then(function(deckData) {
 
-            var myGame = new Game("draw_pile", {game: "draw", data: deckData});
-            console.log(myGame);
+            var gameDeck = new DeckPlacement("draw_pile", {object: "draw", data: deckData});
+            console.log(gameDeck);
 
           });
       }
 
+      //Query for identifying this player and his/her hand.
       function handQuery() {
 
         var currentURL = window.location.origin;
 
         $.ajax({ url: currentURL + "/game/hand/:playerId", method: "GET" })
-          .then(function(deckData) {
+          .then(function(handData) {
 
-            var myGame = new Game("draw_pile", {game: "draw", data: deckData});
-            console.log(myGame);
+            var gameHand = new HandPlacement("hand_div", {object: "hand", data: handData});
+            console.log(gameHand);
 
           });
       }

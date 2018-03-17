@@ -1,6 +1,6 @@
 ;(function(window){
-	// Game
-	var Game = function(el, option){
+	// Placing Deck
+	var DeckPlacement = function(el, option){
 		this.el = document.getElementById(el);
 		this.option = option;
 
@@ -33,20 +33,34 @@
 
 	};
 
+	// Placing user's hand
+	var HandPlacement = function(el, option){
+		this.el = document.getElementById(el);
+		this.option = option;
+
+		this.hand = document.createElement("div");
+		this.hand.id = "hand";
+		this.gameHand = new Hand(this.hand, option);
+		this.gameHand.buildHand();
+
+		this.el.appendChild(this.hand);
+
+	};
+
 	//Player's hand
 	var Hand = function(hand, option){
 
-		this.deckData = option.data;
-		this.buildDeck = function(){
+		this.handData = option.data;
+		this.buildHand = function(){
 			var parentFrag = document.createDocumentFragment();
-			deck_div.innerHTML = "";
-			for (var i = this.deckData.length - 1; i >= 0; i--) {
+			hand.innerHTML = "";
+			for (var i = this.handData.length - 1; i >= 0; i--) {
 				var card = new Card();
 				card.id = "card-" + i;
-				card.data = this.deckData[i].card[0];
+				card.data = this.handData[i].card[0];
 				card.buildCard(parentFrag);
 			};
-			deck_div.appendChild(parentFrag);
+			hand.appendChild(parentFrag);
 
 		};
 	};
@@ -100,5 +114,5 @@
 	// 	Holders
 	// 	----
 	// 	accept or reject
-	window.Game = Game;
+	window.DeckPlacement = DeckPlacement;
 })(window);
