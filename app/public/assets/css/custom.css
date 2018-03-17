@@ -48,6 +48,12 @@ nav {
 	cursor: pointer;
 	position: relative;
   height: 2px;
+
+}
+
+.card_container:nth-child(odd) {
+    border: 0 transparent;
+    height: 0;
 }
 
 .card_front, .card_back {
