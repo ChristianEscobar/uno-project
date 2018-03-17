@@ -1,3 +1,7 @@
+$(window).on("beforeunload", function(event) {
+	console.log("LEAVING");
+});
+
 $("start-btn").on("click", function(event) {
 	$.post("/game/start", function(response) {
 		console.log(response);
