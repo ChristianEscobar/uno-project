@@ -54,7 +54,20 @@ $("#play-btn").on("click", function() {
 			// Disable the play button and wait for other players
 			$("#play-btn").prop("disabled", true);
 
+      var waitMessage = document.createElement("p");
+      waitMessage.innerHTML = "Waiting for a second player."
+      var waitBar = document.createElement("div");
+      waitBar.className = "indeterminate";
+      console.log(waitBar);
+      var waitContain = document.createElement("div");
+      waitContain.className = "progress";
+      waitContain.appendChild(waitBar);
+      $('#wait_indicator').append(waitMessage);
+      $('#wait_indicator').append(waitContain);
+
 			waitForPlayers();
+
+
 		}
 	});
 });
@@ -70,7 +83,7 @@ function waitForPlayers() {
 
 			if(totalPlayers === 2) {
 				// Start game
-				$.post("/game/start") 
+				$.post("/game/start")
 					.done(function(response) {
 						window.location = "game.html";
 					})
