@@ -57,8 +57,6 @@ $("#play-btn").on("click", function() {
       var waitMessage = document.createElement("p");
       waitMessage.innerHTML = "Waiting for a second player."
       var waitBar = document.createElement("div");
-      waitBar.className = "indeterminate";
-      console.log(waitBar);
       var waitContain = document.createElement("div");
       waitContain.className = "progress";
       waitContain.appendChild(waitBar);

@@ -129,12 +129,18 @@
         $.ajax({ url: currentURL + "/game/deck", method: "GET" })
           .then(function(deckData) {
 
-            console.log("------------------------------------");
-            console.log("URL: " + currentURL + "/game/deck");
-            console.log("------------------------------------");
+            var myGame = new Game("draw_pile", {game: "draw", data: deckData});
+            console.log(myGame);
 
-            console.log(deckData);
-            console.log("------------------------------------");
+          });
+      }
+
+      function handQuery() {
+
+        var currentURL = window.location.origin;
+
+        $.ajax({ url: currentURL + "/game/hand/:playerId", method: "GET" })
+          .then(function(deckData) {
 
             var myGame = new Game("draw_pile", {game: "draw", data: deckData});
             console.log(myGame);

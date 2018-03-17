@@ -24,7 +24,6 @@
 				var card = new Card();
 				card.id = "card-" + i;
 				card.data = this.deckData[i].card[0];
-				console.log(card.data);
 				card.buildCard(parentFrag);
 			};
 			deck_div.appendChild(parentFrag);
@@ -33,12 +32,26 @@
 
 
 	};
-	// 	Cards
-	// 	----
-	// 	shuffle
-	// 	stack
 
-	// Card
+	//Player's hand
+	var Hand = function(hand, option){
+
+		this.deckData = option.data;
+		this.buildDeck = function(){
+			var parentFrag = document.createDocumentFragment();
+			deck_div.innerHTML = "";
+			for (var i = this.deckData.length - 1; i >= 0; i--) {
+				var card = new Card();
+				card.id = "card-" + i;
+				card.data = this.deckData[i].card[0];
+				card.buildCard(parentFrag);
+			};
+			deck_div.appendChild(parentFrag);
+
+		};
+	};
+
+	// Card Creation
 	var Card = function(){
 		this.id = "";
 		this.data = "";
@@ -79,10 +92,6 @@
 			parentFrag.appendChild(this.cardCont);
 		}
 	}
-	// 	val
-	// 	suit
-	// 	----
-	// 	flip
 
 	// Discard Pile
 	var DiscardPile = function(){
