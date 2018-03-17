@@ -50,15 +50,26 @@ nav {
 }
 
 .card_container{
+<<<<<<< HEAD
+    cursor: pointer;
+    position: relative;
+ height: 2px;
+=======
 	cursor: pointer;
 	position: relative;
   height: 2px;
+>>>>>>> origin/master
 
 }
 
 .card_container:nth-child(odd) {
+<<<<<<< HEAD
+   border: 0 transparent;
+   height: 0;
+=======
     border: 0 transparent;
     height: 0;
+>>>>>>> origin/master
 }
 
 .card_front, .card_back {
