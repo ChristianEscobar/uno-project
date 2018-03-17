@@ -2,6 +2,18 @@
 
 let totalPlayers = 0;
 
+$(window).on("beforeunload", function(event) {
+	// Remove this Player from the database
+	$.delete("/game/player", {playerId: sessionStorage.playerId})
+	.done(function(response) {
+		console.log("Successful logout");
+	})
+	.fail(function(error) {
+		console.log(error);
+	});
+
+});
+
 $(document).ready(function(){
 	// the "href" attribute of the modal trigger must specify the modal ID that wants to be triggered
  	$('.modal').modal();
