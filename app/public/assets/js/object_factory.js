@@ -14,6 +14,7 @@
 	};
 
 	// Deck building
+	// Deck
 	var Deck = function(deck_div, option){
 
 		this.deckData = option.data;

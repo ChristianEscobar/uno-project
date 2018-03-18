@@ -118,6 +118,8 @@
     <script type="text/javascript" src="assets/js/custom.js"></script>
     <script type="text/javascript" src="assets/js/dummyDB.json"></script>
     <script type="text/javascript" src="assets/js/object_factory.js"></script>
+    <script type="text/javascript" src="assets/js/game.js"></script>
+    <!-- The deck will be populated in the document ready function in game.js
     <script type="text/javascript">
 
     ;(function(){
@@ -159,15 +161,18 @@
 
             var gameDiscard = new DiscardPlacement("discard_pile", {object: "discard", data: discardData});
             console.log(gameDiscard);
+            //console.log(deckData);
+            console.log("------------------------------------");
 
+            var myGame = new Game("draw_pile", {game: "draw", data: deckData});
+            //console.log(myGame);
           });
       }
 
       deckQuery();
       discardTopQuery()
     })();
-
-    </script>
+</script>
   </body>
 
 </html>
