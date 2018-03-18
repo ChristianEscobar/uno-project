@@ -34,3 +34,8 @@ npm install
 cd ../uno-project/app 
 sequelize db:seed:all
 ```
+
+### Known Issues
+1. The game can currently only handle two players at one time.
+2. When a player leaves the game, their details are not removed from the database.  The row must be deleted manually.
+3. The game's front end is not currently connected to the back end.
