@@ -35,7 +35,7 @@ cd ../uno-project/app
 sequelize db:seed:all
 ```
 ### Schema
-![Database Schema](/app/public/assets/images/github/schema.tiff)
+![Database Schema](/app/public/assets/images/github/schema.png)
 
 ### Routes
 ![Routes](/app/public/assets/images/github/routes.png)
