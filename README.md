@@ -2,11 +2,11 @@
 
 ## This version is a work in progress, some functionality may not function properly.  Check back for updates.
 
-![Login Page](/app/public/assets/images/github/login.png)
+[Login Page](/app/public/assets/images/github/login.png)
 
-![Enter Player Name](/app/public/assets/images/github/login-2.png)
+[Enter Player Name](/app/public/assets/images/github/login-2.png)
 
-![Game Board](/app/public/assets/images/github/game-board.png)
+[Game Board](/app/public/assets/images/github/game-board.png)
 
 ### Game Rules
 The basic object of the game is for a Player to get rid of all the cards in their hand by matching cards on top of the discard pile.  For a complete set of rules, visit [UNO Rules](https://www.unorules.com/).
@@ -34,6 +34,11 @@ npm install
 cd ../uno-project/app 
 sequelize db:seed:all
 ```
+### Schema
+![Database Schema](/app/public/assets/images/github/schema.tiff)
+
+### Routes
+![Routes](/app/public/assets/images/github/routes.png)
 
 ### Known Issues
 1. The game can currently only handle two players at one time.
