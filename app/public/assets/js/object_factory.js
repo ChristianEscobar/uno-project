@@ -13,6 +13,25 @@
 
 	};
 
+	// Player Hand
+	var Hand = function(hand_div, option) {
+		
+		this.deckData = option.data;
+		this.buildDeck = function(){
+			var parentFrag = document.createDocumentFragment();
+			deck_div.innerHTML = "";
+			for (var i = this.deckData.length - 1; i >= 0; i--) {
+				var card = new Card();
+				card.id = "card-" + i;
+				card.data = this.deckData[i].card[0];
+				console.log(card.data);
+				card.buildCard(parentFrag);
+			};
+			deck_div.appendChild(parentFrag);
+
+		};
+	};
+
 	// Deck
 	var Deck = function(deck_div, option){
 
