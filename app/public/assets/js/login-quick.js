@@ -92,16 +92,20 @@ function waitForPlayers() {
 			//console.log(totalPlayers);
 
 			if(totalPlayers === 2) {
-				// Start game
-				$.post("/game/start")
-					.done(function(response) {
-						window.location = "game.html";
-					})
-					.fail(function(error) {
-						console.log(error);
-					});
+				// Start game, only the master player will call /game/start
+				if(sessionStorage.master === true) {
+					$.post("/game/start")
+					.then((response) => window.location = "game.html")
+					.catch((error) => console.log(error));
+				} else {
+					window.location = "game.html";
+				}
+				
 
 			} else {
+				// If execution reaches here, that means there are no players waiting, so this player becomes the master
+				sessionStorage.setItem("master", true);
+
 				setTimeout(waitForPlayers(), 1000);
 			}
 		})
