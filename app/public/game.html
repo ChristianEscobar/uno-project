@@ -68,9 +68,9 @@
 
               <div class="col s5 m5 l5 guide4 center-align" id="discard_pile">
                 <h5 class="center">Discard</h5>
-                <div id="discard" style="height: 140px; width: 100px; position: relative;">
-                  <img class="responsive-img card-display" src="assets/images/cards/small/red_0.png">
-                </div>
+                <!-- <div id="discard" style="height: 140px; width: 100px; position: relative;"> -->
+                  <!-- <img class="responsive-img card-display" src="assets/images/cards/small/red_0.png"> -->
+                <!-- </div> -->
               </div>
             </div>
           </div>
@@ -91,7 +91,7 @@
           <!-- Spacer -->
         </div>
 
-        <div class="col m10 l12 center-align">
+        <div class="col m10 l12 center-align" id="hand_div">
           <h5 class="center">Current Player Hand</h5>
           <div id="hand">
             <img class="responsive-img card-display" ondragover="updateDiscard(event)" src="assets/images/cards/small/blue_0.png">
@@ -124,6 +124,7 @@
 
     ;(function(){
 
+      // Working query which triggers creation of the deck.
       function deckQuery() {
 
         var currentURL = window.location.origin;
@@ -131,23 +132,47 @@
         $.ajax({ url: currentURL + "/game/deck", method: "GET" })
           .then(function(deckData) {
 
-            console.log("------------------------------------");
-            console.log("URL: " + currentURL + "/game/deck");
-            console.log("------------------------------------");
+            var gameDeck = new DeckPlacement("draw_pile", {object: "draw", data: deckData});
+            console.log(gameDeck);
 
+          });
+      }
+
+      //Query for identifying this player and his/her hand.
+      function handQuery() {
+
+        var currentURL = window.location.origin;
+
+        $.ajax({ url: currentURL + "/game/hand/:playerId", method: "GET" })
+          .then(function(handData) {
+
+            var gameHand = new HandPlacement("hand_div", {object: "hand", data: handData});
+            console.log(gameHand);
+
+          });
+      }
+
+      function discardTopQuery() {
+
+        var currentURL = window.location.origin;
+
+        $.ajax({ url: currentURL + "/game/discard/topcard", method: "GET" })
+          .then(function(discardData) {
+
+            var gameDiscard = new DiscardPlacement("discard_pile", {object: "discard", data: discardData});
+            console.log(gameDiscard);
             //console.log(deckData);
             console.log("------------------------------------");
 
             var myGame = new Game("draw_pile", {game: "draw", data: deckData});
             //console.log(myGame);
-
           });
       }
 
       deckQuery();
+      discardTopQuery()
     })();
-    </script>
-    -->
+</script>
   </body>
 
 </html>

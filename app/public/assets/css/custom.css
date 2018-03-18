@@ -11,7 +11,7 @@ body.gameboard {
   background-color: black;
   background-image: url("../images/Uno_Logo2.png");
   background-size: 175px;
-  background-position: 50% 56%;
+  background-position: 50% 53%;
   background-repeat: no-repeat;
 
 }
@@ -72,19 +72,17 @@ nav {
 	border-radius: 5px;
 	background-color: white;
   top: -2px;
-  left: 65px;
+  left: 60px;
   height: 100%;
 }
 
 .card_front {
 	z-index: 2;
 	transform: rotateY(0deg);
-	background-position: -86px -69px;
 }
 
 .card_back {
 	transform: rotateY(180deg);
-	background-position: -915px -867px;
 }
 
 h5 {

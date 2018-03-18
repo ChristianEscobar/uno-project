@@ -1,6 +1,6 @@
 ;(function(window){
-	// Game
-	var Game = function(el, option){
+	// Placing Deck in Div
+	var DeckPlacement = function(el, option){
 		this.el = document.getElementById(el);
 		this.option = option;
 
@@ -13,25 +13,7 @@
 
 	};
 
-	// Player Hand
-	var Hand = function(hand_div, option) {
-		
-		this.deckData = option.data;
-		this.buildDeck = function(){
-			var parentFrag = document.createDocumentFragment();
-			deck_div.innerHTML = "";
-			for (var i = this.deckData.length - 1; i >= 0; i--) {
-				var card = new Card();
-				card.id = "card-" + i;
-				card.data = this.deckData[i].card[0];
-				console.log(card.data);
-				card.buildCard(parentFrag);
-			};
-			deck_div.appendChild(parentFrag);
-
-		};
-	};
-
+	// Deck building
 	// Deck
 	var Deck = function(deck_div, option){
 
@@ -43,7 +25,6 @@
 				var card = new Card();
 				card.id = "card-" + i;
 				card.data = this.deckData[i].card[0];
-				console.log(card.data);
 				card.buildCard(parentFrag);
 			};
 			deck_div.appendChild(parentFrag);
@@ -52,12 +33,74 @@
 
 
 	};
-	// 	Cards
-	// 	----
-	// 	shuffle
-	// 	stack
 
-	// Card
+	// Placemnet of user's hand in div
+	var HandPlacement = function(el, option){
+		this.el = document.getElementById(el);
+		this.option = option;
+
+		this.hand = document.createElement("div");
+		this.hand.id = "hand";
+		this.gameHand = new Hand(this.hand, option);
+		this.gameHand.buildHand();
+
+		this.el.appendChild(this.hand);
+
+	};
+
+	//Player's hand build
+	var Hand = function(hand, option){
+
+		this.handData = option.data;
+		this.buildHand = function(){
+			var parentFrag = document.createDocumentFragment();
+			hand.innerHTML = "";
+			for (var i = this.handData.length - 1; i >= 0; i--) {
+				var card = new Card();
+				card.id = "card-" + i;
+				card.data = this.handData[i].card[0];
+				card.buildCard(parentFrag);
+			};
+			hand.appendChild(parentFrag);
+
+		};
+	};
+
+	// Discard Pile Placement
+	var DiscardPlacement = function(el, option){
+
+		this.el = document.getElementById(el);
+		this.option = option;
+
+		this.discard = document.createElement("div");
+		this.discard.id = "discard";
+		this.gameDiscard = new Discard(this.discard, option);
+		this.gameDiscard.buildDiscard();
+
+		this.el.appendChild(this.discard);
+
+	}
+
+	//Discard Pile build
+	var Discard = function(discard, option){
+
+		this.discardData = option.data;
+		this.buildDiscard = function(){
+			var parentFrag = document.createDocumentFragment();
+			discard.innerHTML = "";
+			for (var i = Object.keys(this.discardData).length - 1; i >= 0; i--) {
+				var card = new Card();
+				card.id = "card-" + i;
+				card.data = this.discardData.card.card[i];
+				console.log(card.data);
+				card.buildCard(parentFrag);
+			};
+			discard.appendChild(parentFrag);
+
+		};
+	};
+
+	// Card Creation
 	var Card = function(){
 		this.id = "";
 		this.data = "";
@@ -98,17 +141,9 @@
 			parentFrag.appendChild(this.cardCont);
 		}
 	}
-	// 	val
-	// 	suit
-	// 	----
-	// 	flip
 
-	// Discard Pile
-	var DiscardPile = function(){
+	window.DeckPlacement = DeckPlacement;
+	window.HandPlacement = HandPlacement;
+	window.DiscardPlacement = DiscardPlacement;
 
-	}
-	// 	Holders
-	// 	----
-	// 	accept or reject
-	window.Game = Game;
 })(window);
