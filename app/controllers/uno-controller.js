@@ -597,7 +597,7 @@ router.get("/game/deck", (req, res) => {
 	Deck.findAll()
 	.then((deck) => {
 		if(deck === null || deck.length === 0) {
-			throw new Error("No cards found in deck.  Make sure a deck has been setup.");
+			return Promise.resolve([]);
 		}
 
 		const promises = [];
